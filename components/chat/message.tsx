@@ -15,10 +15,7 @@ interface ReasoningContextType {
 
 const ReasoningContext = createContext<ReasoningContextType | null>(null)
 
-export const useReasoningContext = () => {
-  const context = useContext(ReasoningContext)
-  return context
-}
+export const useReasoningContext = () => useContext(ReasoningContext)
 
 export const Message = memo(function Message({ message }: Props) {
   const [expandedReasoningIndex, setExpandedReasoningIndex] = useState<
@@ -31,41 +28,48 @@ export const Message = memo(function Message({ message }: Props) {
 
   useEffect(() => {
     if (reasoningParts.length > 0) {
-      const latestReasoningIndex =
+      setExpandedReasoningIndex(
         reasoningParts[reasoningParts.length - 1].index
-      setExpandedReasoningIndex(latestReasoningIndex)
+      )
     }
   }, [reasoningParts])
+
+  const isUser = message.role === 'user'
 
   return (
     <ReasoningContext.Provider
       value={{ expandedReasoningIndex, setExpandedReasoningIndex }}
     >
-      <div
-        className={cn({
-          'mr-20': message.role === 'assistant',
-          'ml-20': message.role === 'user',
-        })}
-      >
-        {/* Message Header */}
-        <div className="flex items-center gap-2 text-sm font-medium font-mono text-primary mb-1.5">
-          {message.role === 'user' ? (
-            <>
-              <UserIcon className="ml-auto w-4" />
-              <span>You</span>
-            </>
-          ) : (
-            <>
-              <BotIcon className="w-4" />
-              <span>Assistant ({message.metadata?.model})</span>
-            </>
+      <div className={cn('flex flex-col gap-1.5', isUser ? 'items-end' : 'items-start')}>
+        {/* Role label */}
+        <div
+          className={cn(
+            'flex items-center gap-1.5 text-xs font-mono font-semibold',
+            isUser ? 'text-cyan-400/70 flex-row-reverse' : 'text-slate-500'
           )}
+        >
+          {isUser ? (
+            <UserIcon className="w-3 h-3" />
+          ) : (
+            <BotIcon className="w-3 h-3" />
+          )}
+          <span>{isUser ? 'You' : `Assistant${message.metadata?.model ? ` · ${message.metadata.model}` : ''}`}</span>
         </div>
 
-        {/* Message Content */}
-        <div className="space-y-1.5">
+        {/* Message parts */}
+        <div
+          className={cn(
+            'space-y-1.5 w-full',
+            isUser ? 'pl-8' : 'pr-6'
+          )}
+        >
           {message.parts.map((part, index) => (
-            <MessagePart key={index} part={part} partIndex={index} />
+            <div
+              key={index}
+              className={cn(isUser && part.type === 'text' ? 'chat-bubble-user' : '')}
+            >
+              <MessagePart part={part} partIndex={index} />
+            </div>
           ))}
         </div>
       </div>

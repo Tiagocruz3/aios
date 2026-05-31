@@ -21,12 +21,24 @@ export default async function Page() {
       <div className="flex flex-col h-screen max-h-screen overflow-hidden p-2 gap-1.5">
         <Header className="flex items-center w-full flex-shrink-0" />
 
-        {/* Mobile tabs */}
-        <ul className="flex space-x-5 font-mono text-sm tracking-tight px-1 py-1 md:hidden">
-          <TabItem tabId="chat">Chat</TabItem>
-          <TabItem tabId="preview">Preview</TabItem>
-          <TabItem tabId="file-explorer">File Explorer</TabItem>
-          <TabItem tabId="logs">Logs</TabItem>
+        {/* Mobile tab bar */}
+        <ul className="mobile-tab-bar md:hidden flex-shrink-0">
+          <TabItem tabId="chat">
+            <span className="text-base leading-none">💬</span>
+            Chat
+          </TabItem>
+          <TabItem tabId="preview">
+            <span className="text-base leading-none">🖥️</span>
+            Preview
+          </TabItem>
+          <TabItem tabId="file-explorer">
+            <span className="text-base leading-none">📁</span>
+            Files
+          </TabItem>
+          <TabItem tabId="logs">
+            <span className="text-base leading-none">⌨️</span>
+            Logs
+          </TabItem>
         </ul>
 
         {/* Mobile layout */}

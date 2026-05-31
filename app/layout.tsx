@@ -6,16 +6,22 @@ import { HolographicBackground } from '@/components/holographic-background'
 import { SandboxState } from '@/components/modals/sandbox-state'
 import { Toaster } from '@/components/ui/sonner'
 import type { ReactNode } from 'react'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Suspense } from 'react'
 import './globals.css'
 
 const title = 'OSS Vibe Coding Platform'
-const description = `This is a demo of an end-to-end coding platform where the user can enter text prompts, and the agent will create a full stack application. It uses Vercel's AI Cloud services like Sandbox for secure code execution, AI Gateway for GPT-5 and other models support, Fluid Compute for efficient rendering and streaming, and it's built with Next.js and the AI SDK.`
+const description = `An end-to-end AI coding platform. Enter text prompts and the agent creates full stack applications using Vercel Sandbox, AI Gateway, and Next.js.`
 
 export const metadata: Metadata = {
   title,
   description,
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title,
+  },
   openGraph: {
     images: [
       {
@@ -31,6 +37,15 @@ export const metadata: Metadata = {
       },
     ],
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#000510',
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({

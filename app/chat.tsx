@@ -2,45 +2,53 @@
 
 import type { ChatUIMessage } from '@/components/chat/types'
 import { TEST_PROMPTS } from '@/ai/constants'
-import { MessageCircleIcon, SendIcon } from 'lucide-react'
+import { ArrowUpIcon, SparklesIcon, SquareIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Conversation,
   ConversationContent,
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation'
-import { Input } from '@/components/ui/input'
 import { Message } from '@/components/chat/message'
 import { ModelSelector } from '@/components/settings/model-selector'
-import { Panel, PanelHeader } from '@/components/panels/panels'
+import { Panel } from '@/components/panels/panels'
 import { Settings } from '@/components/settings/settings'
 import { useChat } from '@ai-sdk/react'
 import { useLocalStorageValue } from '@/lib/use-local-storage-value'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useSharedChatContext } from '@/lib/chat-context'
 import { useSettings } from '@/components/settings/use-settings'
 import { useSandboxStore } from './state'
+import { cn } from '@/lib/utils'
 
 interface Props {
   className: string
-  modelId?: string
 }
 
 export function Chat({ className }: Props) {
   const [input, setInput] = useLocalStorageValue('prompt-input')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { chat } = useSharedChatContext()
   const { modelId, reasoningEffort } = useSettings()
   const { messages, sendMessage, status } = useChat<ChatUIMessage>({ chat })
   const { setChatStatus } = useSandboxStore()
+  const isLoading = status === 'streaming' || status === 'submitted'
+
+  const adjustHeight = useCallback(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`
+  }, [])
 
   const validateAndSubmitMessage = useCallback(
     (text: string) => {
-      if (text.trim()) {
-        sendMessage({ text }, { body: { modelId, reasoningEffort } })
-        setInput('')
-      }
+      if (!text.trim() || isLoading) return
+      sendMessage({ text }, { body: { modelId, reasoningEffort } })
+      setInput('')
+      if (textareaRef.current) textareaRef.current.style.height = 'auto'
     },
-    [sendMessage, modelId, setInput, reasoningEffort]
+    [sendMessage, modelId, setInput, reasoningEffort, isLoading]
   )
 
   useEffect(() => {
@@ -48,27 +56,46 @@ export function Chat({ className }: Props) {
   }, [status, setChatStatus])
 
   return (
-    <Panel className={className}>
-      <PanelHeader>
-        <div className="flex items-center font-mono font-semibold uppercase">
-          <MessageCircleIcon className="mr-2 w-4" />
+    <Panel className={cn('flex flex-col overflow-hidden', className)}>
+      {/* Header */}
+      <div className="holo-panel-header flex items-center px-3 py-2 flex-shrink-0">
+        <SparklesIcon className="w-3.5 h-3.5 mr-2 text-cyan-400 flex-shrink-0" />
+        <span className="font-mono text-xs font-bold uppercase tracking-wider text-cyan-200">
           Chat
-        </div>
-        <div className="ml-auto font-mono text-xs opacity-50">[{status}]</div>
-      </PanelHeader>
+        </span>
+        {isLoading && (
+          <div className="ml-2.5 flex items-center gap-0.5">
+            {[0, 150, 300].map((delay) => (
+              <span
+                key={delay}
+                className="w-1 h-1 rounded-full bg-cyan-400 animate-bounce"
+                style={{ animationDelay: `${delay}ms` }}
+              />
+            ))}
+          </div>
+        )}
+        <span className="ml-auto font-mono text-xs text-slate-600 select-none">
+          {status}
+        </span>
+      </div>
 
-      {/* Messages Area */}
-      {messages.length === 0 ? (
-        <div className="flex-1 min-h-0">
-          <div className="flex flex-col justify-center items-center h-full font-mono text-sm text-muted-foreground">
-            <p className="flex items-center font-semibold">
-              Click and try one of these prompts:
-            </p>
-            <ul className="p-4 space-y-1 text-center">
+      {/* Messages / Empty state */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {messages.length === 0 ? (
+          <div className="flex flex-col justify-center items-center h-full px-4 gap-4">
+            <div className="text-center space-y-1.5">
+              <p className="text-sm font-semibold text-slate-200">
+                Start building something
+              </p>
+              <p className="text-xs text-slate-500">
+                Try one of these prompts to get started:
+              </p>
+            </div>
+            <ul className="w-full space-y-1.5">
               {TEST_PROMPTS.map((prompt, idx) => (
                 <li
                   key={idx}
-                  className="px-4 py-2 rounded-sm border border-dashed shadow-sm cursor-pointer border-border hover:bg-secondary/50 hover:text-primary"
+                  className="px-3 py-2 rounded-lg border border-cyan-500/12 bg-cyan-500/5 text-xs text-slate-400 cursor-pointer hover:bg-cyan-500/10 hover:text-slate-200 hover:border-cyan-500/28 transition-all duration-150 leading-snug"
                   onClick={() => validateAndSubmitMessage(prompt)}
                 >
                   {prompt}
@@ -76,38 +103,74 @@ export function Chat({ className }: Props) {
               ))}
             </ul>
           </div>
-        </div>
-      ) : (
-        <Conversation className="relative w-full">
-          <ConversationContent className="space-y-4">
-            {messages.map((message) => (
-              <Message key={message.id} message={message} />
-            ))}
-          </ConversationContent>
-          <ConversationScrollButton />
-        </Conversation>
-      )}
+        ) : (
+          <Conversation className="relative h-full">
+            <ConversationContent className="px-3 py-4 space-y-5">
+              {messages.map((message) => (
+                <Message key={message.id} message={message} />
+              ))}
+            </ConversationContent>
+            <ConversationScrollButton />
+          </Conversation>
+        )}
+      </div>
 
-      <form
-        className="flex items-center p-2 space-x-1 border-t border-primary/18 bg-background"
-        onSubmit={async (event) => {
-          event.preventDefault()
-          validateAndSubmitMessage(input)
-        }}
-      >
-        <Settings />
-        <ModelSelector />
-        <Input
-          className="w-full font-mono text-sm rounded-sm border-0 bg-background"
-          disabled={status === 'streaming' || status === 'submitted'}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
-          value={input}
-        />
-        <Button type="submit" disabled={status !== 'ready' || !input.trim()}>
-        <SendIcon className="w-4 h-4" />
-        </Button>
-      </form>
+      {/* Claude-style input area */}
+      <div className="flex-shrink-0 p-2.5">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            validateAndSubmitMessage(input)
+          }}
+          className="claude-input-wrap"
+        >
+          {/* Top toolbar: model + settings */}
+          <div className="flex items-center gap-1 px-2 pt-2 pb-0">
+            <ModelSelector />
+            <Settings />
+          </div>
+
+          {/* Textarea */}
+          <textarea
+            ref={textareaRef}
+            className="claude-textarea"
+            disabled={isLoading}
+            onChange={(e) => {
+              setInput(e.target.value)
+              adjustHeight()
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                validateAndSubmitMessage(input)
+              }
+            }}
+            placeholder="Message… (⏎ send · ⇧⏎ newline)"
+            rows={1}
+            value={input}
+          />
+
+          {/* Bottom row: send button */}
+          <div className="flex items-center justify-end px-2.5 pb-2.5">
+            <button
+              type="submit"
+              disabled={isLoading || !input.trim()}
+              className={cn(
+                'flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 flex-shrink-0',
+                !isLoading && input.trim()
+                  ? 'bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_0_14px_rgba(0,210,255,0.45)] cursor-pointer'
+                  : 'bg-slate-800/60 text-slate-600 cursor-not-allowed'
+              )}
+            >
+              {isLoading ? (
+                <SquareIcon className="w-3.5 h-3.5" />
+              ) : (
+                <ArrowUpIcon className="w-4 h-4" strokeWidth={2.5} />
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </Panel>
   )
 }

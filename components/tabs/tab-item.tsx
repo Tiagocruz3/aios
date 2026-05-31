@@ -11,12 +11,14 @@ interface Props {
 
 export function TabItem({ children, tabId }: Props) {
   const [activeTabId, setTabId] = useTabState()
+  const active = activeTabId === tabId
   return (
     <li
       onClick={() => setTabId(tabId)}
-      className={cn('cursor-pointer', {
-        'border-b border-b-black': activeTabId === tabId,
-      })}
+      className={cn(
+        'mobile-tab-item select-none',
+        active && 'active'
+      )}
     >
       {children}
     </li>
