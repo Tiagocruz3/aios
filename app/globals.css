@@ -274,6 +274,7 @@
   );
   background-size: 200% 100%;
   animation: header-sweep 8s linear infinite;
+  pointer-events: none;
 }
 
 /* ============================================================

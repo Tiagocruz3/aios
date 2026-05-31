@@ -79,32 +79,30 @@ export function Preview({ className, disabled, url }: Props) {
   return (
     <div ref={containerRef} className={cn('flex flex-col h-full', className)}>
     <Panel className="flex-1 h-full">
-      <PanelHeader>
+      <PanelHeader className="flex items-center gap-1 relative z-10">
         {/* Left controls */}
-        <div className="absolute flex items-center gap-0.5 left-2.5">
-          <IconBtn
-            onClick={openInNewTab}
-            disabled={!currentUrl}
-            title="Open preview in new tab"
-          >
-            <ExternalLinkIcon className="w-3.5 h-3.5" />
-          </IconBtn>
-          <IconBtn
-            onClick={refreshIframe}
-            disabled={!currentUrl}
-            title="Refresh preview"
-            className={isLoading ? 'animate-spin' : ''}
-          >
-            <RefreshCwIcon className="w-3.5 h-3.5" />
-          </IconBtn>
-        </div>
+        <IconBtn
+          onClick={openInNewTab}
+          disabled={!currentUrl}
+          title="Open preview in new tab"
+        >
+          <ExternalLinkIcon className="w-3.5 h-3.5" />
+        </IconBtn>
+        <IconBtn
+          onClick={refreshIframe}
+          disabled={!currentUrl}
+          title="Refresh preview"
+          className={isLoading ? 'animate-spin' : ''}
+        >
+          <RefreshCwIcon className="w-3.5 h-3.5" />
+        </IconBtn>
 
         {/* URL bar */}
-        <div className="mx-auto h-6">
-          {url && (
+        <div className="flex-1 flex justify-center px-2">
+          {currentUrl && (
             <input
               type="text"
-              className="font-mono text-xs h-6 border border-cyan-500/20 px-3 bg-black/40 text-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-cyan-500/40 min-w-[260px] placeholder:text-slate-600"
+              className="font-mono text-xs h-6 border border-cyan-500/20 px-3 bg-black/40 text-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-cyan-500/40 w-full max-w-sm placeholder:text-slate-600"
               onChange={(e) => setInputValue(e.target.value)}
               onClick={(e) => e.currentTarget.select()}
               onKeyDown={(e) => {
@@ -116,13 +114,11 @@ export function Preview({ className, disabled, url }: Props) {
         </div>
 
         {/* Right: fullscreen */}
-        <div className="absolute flex items-center right-2.5">
-          <IconBtn onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
-            {isFullscreen
-              ? <Minimize2Icon className="w-3.5 h-3.5" />
-              : <Maximize2Icon className="w-3.5 h-3.5" />}
-          </IconBtn>
-        </div>
+        <IconBtn onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
+          {isFullscreen
+            ? <Minimize2Icon className="w-3.5 h-3.5" />
+            : <Maximize2Icon className="w-3.5 h-3.5" />}
+        </IconBtn>
       </PanelHeader>
 
       <div className="flex-1 relative overflow-hidden">
