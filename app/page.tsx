@@ -14,8 +14,8 @@ export default async function Page() {
   return (
     <>
       <Welcome defaultOpen={banner} onDismissAction={hideBanner} />
-      <div className="flex flex-col h-screen max-h-screen overflow-hidden px-2 pb-2 pt-1 gap-1">
-        <Header className="flex items-center w-full flex-shrink-0" />
+      <div className="flex flex-col h-screen max-h-screen overflow-hidden px-2 pb-2 pt-0 gap-1">
+        <Header className="flex items-center w-full flex-shrink-0 py-0.5" />
 
         {/* Mobile layout — chat on top, tabbed panel below */}
         <div className="flex flex-col flex-1 w-full min-h-0 overflow-hidden gap-1.5 md:hidden">

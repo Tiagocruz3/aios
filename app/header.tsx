@@ -9,7 +9,7 @@ interface Props {
 }
 
 const btnCls =
-  'flex items-center gap-1.5 h-8 px-2.5 rounded-md text-xs font-mono font-semibold text-slate-400 border border-cyan-500/15 bg-black/30 hover:text-cyan-200 hover:border-cyan-500/30 hover:bg-cyan-500/10 transition-all cursor-pointer select-none'
+  'flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-mono font-semibold text-slate-400 border border-cyan-500/15 bg-black/30 hover:text-cyan-200 hover:border-cyan-500/30 hover:bg-cyan-500/10 transition-all cursor-pointer select-none'
 
 export function Header({ className }: Props) {
   const { open, setOpen } = useWelcomeStore()
@@ -24,8 +24,8 @@ export function Header({ className }: Props) {
     <header className={cn('flex items-center justify-between', className)}>
       {/* Brand */}
       <div className="flex items-center gap-2 ml-1 md:ml-2">
-        <span className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 shadow-[0_0_12px_rgba(0,200,255,0.2)]">
-          <DnaIcon className="w-4 h-4 text-cyan-300" />
+        <span className="relative flex items-center justify-center w-6 h-6 rounded-md bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 shadow-[0_0_10px_rgba(0,200,255,0.2)]">
+          <DnaIcon className="w-3.5 h-3.5 text-cyan-300" />
         </span>
         <span className="text-sm font-mono font-bold tracking-[0.25em] holo-title">
           HELIX
