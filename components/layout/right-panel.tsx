@@ -20,45 +20,52 @@ export function RightPanel() {
   const [logsOpen, setLogsOpen] = useState(false)
 
   return (
-    <div className="flex flex-col h-full w-full gap-1.5">
-      {/* Tab bar */}
-      <div className="flex items-center gap-1 flex-shrink-0 px-0.5">
-        <ViewTab
-          active={activeView === 'preview'}
-          onClick={() => setActiveView('preview')}
-          icon={<MonitorIcon className="w-3.5 h-3.5" />}
-          label="Preview"
-        />
-        <ViewTab
-          active={activeView === 'code'}
-          onClick={() => setActiveView('code')}
-          icon={<Code2Icon className="w-3.5 h-3.5" />}
-          label="Code"
-        />
+    <div className="flex flex-col h-full w-full">
+      {/* Lovable-style prominent top bar */}
+      <div className="flex items-stretch flex-shrink-0 h-10 border-b border-white/8 bg-[#080c12]">
+        {/* View tabs */}
+        <div className="flex items-stretch">
+          <ViewTab
+            active={activeView === 'preview'}
+            onClick={() => setActiveView('preview')}
+            icon={<MonitorIcon className="w-4 h-4" />}
+            label="Preview"
+          />
+          <ViewTab
+            active={activeView === 'code'}
+            onClick={() => setActiveView('code')}
+            icon={<Code2Icon className="w-4 h-4" />}
+            label="Code"
+          />
+        </div>
+
         <div className="flex-1" />
-        <button
-          type="button"
-          onClick={() => setLogsOpen((v) => !v)}
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono font-semibold uppercase transition-all duration-200 border',
-            logsOpen
-              ? 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20 shadow-[0_0_8px_rgba(0,200,255,0.15)]'
-              : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-white/5'
-          )}
-        >
-          <TerminalIcon className="w-3.5 h-3.5" />
-          Logs
-          {logsOpen ? (
-            <ChevronDownIcon className="w-3 h-3" />
-          ) : (
-            <ChevronUpIcon className="w-3 h-3" />
-          )}
-        </button>
+
+        {/* Terminal toggle — only in code view */}
+        {activeView === 'code' && (
+          <button
+            type="button"
+            onClick={() => setLogsOpen((v) => !v)}
+            className={cn(
+              'flex items-center gap-1.5 px-4 h-full text-[0.7rem] font-mono font-bold uppercase tracking-wider transition-all duration-200 border-l border-white/5',
+              logsOpen
+                ? 'text-emerald-400 bg-emerald-500/8'
+                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+            )}
+          >
+            <TerminalIcon className="w-3.5 h-3.5" />
+            Terminal
+            {logsOpen
+              ? <ChevronDownIcon className="w-3 h-3 ml-0.5" />
+              : <ChevronUpIcon className="w-3 h-3 ml-0.5" />
+            }
+          </button>
+        )}
       </div>
 
-      {/* Stacked panels — both rendered, one in front */}
+      {/* Content area */}
       <div className="relative flex-1 min-h-0">
-        {/* Preview panel */}
+        {/* Preview panel — absolute, depth effect when inactive */}
         <div
           className={cn(
             'absolute inset-0 transition-all duration-300 ease-in-out',
@@ -70,27 +77,29 @@ export function RightPanel() {
           <Preview className="h-full" />
         </div>
 
-        {/* Code / File Explorer panel */}
+        {/* Code panel — file explorer + collapsible terminal at bottom */}
         <div
           className={cn(
-            'absolute inset-0 transition-all duration-300 ease-in-out',
+            'absolute inset-0 flex flex-col transition-all duration-300 ease-in-out',
             activeView === 'code'
               ? 'z-20 opacity-100 scale-100'
               : 'z-10 opacity-[0.13] scale-[0.972] pointer-events-none blur-[1.5px]'
           )}
         >
-          <FileExplorer className="h-full" />
-        </div>
-      </div>
+          <div className="flex-1 min-h-0">
+            <FileExplorer className="h-full" />
+          </div>
 
-      {/* Logs — collapsible drawer */}
-      <div
-        className={cn(
-          'flex-shrink-0 overflow-hidden transition-all duration-300 ease-in-out',
-          logsOpen ? 'h-44' : 'h-0'
-        )}
-      >
-        <Logs className="h-44" />
+          {/* Integrated terminal drawer */}
+          <div
+            className={cn(
+              'flex-shrink-0 overflow-hidden transition-all duration-300 ease-in-out border-t border-white/5',
+              logsOpen ? 'h-48' : 'h-0'
+            )}
+          >
+            <Logs className="h-48" />
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -112,14 +121,17 @@ function ViewTab({
       type="button"
       onClick={onClick}
       className={cn(
-        'flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono font-semibold uppercase transition-all duration-200 border',
+        'flex items-center gap-2 px-5 h-full text-sm font-semibold tracking-tight transition-all duration-200 border-b-2 relative',
         active
-          ? 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20 shadow-[0_0_14px_rgba(0,200,255,0.22)]'
-          : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-white/5'
+          ? 'text-cyan-300 border-b-cyan-400 bg-[#0d1117]'
+          : 'text-slate-500 border-b-transparent hover:text-slate-300 hover:bg-white/5'
       )}
     >
       {icon}
       {label}
+      {active && (
+        <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-500/0 via-cyan-400 to-cyan-500/0" />
+      )}
     </button>
   )
 }
