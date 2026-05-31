@@ -36,7 +36,7 @@ export function Welcome(props: {
   }
 
   return (
-    <div className="fixed w-screen h-screen z-10">
+    <div className="fixed inset-0 w-screen h-screen z-[9999]">
       <div className="absolute w-full h-full bg-secondary opacity-60" />
       <div
         className="relative w-full h-full flex items-center justify-center"
