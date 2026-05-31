@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   ZapIcon, GitBranchIcon, CloudIcon, DatabaseIcon,
   VideoIcon, BrainCircuitIcon, LockIcon,
-  WifiIcon, CpuIcon, CircleIcon, PlusIcon,
+  WifiIcon, CpuIcon, CircleIcon, LayersIcon,
 } from 'lucide-react'
 
 /* ── clock ─────────────────────────────────────────────────────── */
@@ -144,7 +144,7 @@ const apps: AppDef[] = [
   { id: 'vercel',   name: 'Vercel',       desc: 'Deployments & hosting',    icon: CloudIcon,      href: '/vercel',           status: 'online' },
   { id: 'supabase', name: 'Supabase',     desc: 'Backend & database',       icon: DatabaseIcon,   href: '/agent?app=supabase', status: 'online' },
   { id: 'video',    name: 'Video Agent',  desc: 'AI YouTube Shorts',        icon: VideoIcon,      href: '/video',            status: 'online' },
-  { id: 'new',      name: 'New App',      desc: 'Build with Helix',         icon: PlusIcon,       href: '/agent', status: 'online' },
+  { id: 'hyperdrive', name: 'Hyper Drive', desc: 'Media library',            icon: LayersIcon,     href: '/hyperdrive', status: 'online' },
 ]
 
 const GRAPHS = [

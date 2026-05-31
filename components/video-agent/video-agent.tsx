@@ -55,6 +55,7 @@ export function VideoAgent({ className }: { className?: string }) {
   const [elapsed, setElapsed] = useState(0)
 
   const [clips, setClips] = useState<Clip[]>([])
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -88,6 +89,7 @@ export function VideoAgent({ className }: { className?: string }) {
     setStatus('submitting')
     setQueuePos(null)
     setElapsed(0)
+    setPendingPrompt(prompt.trim())
 
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000)
 
@@ -133,8 +135,10 @@ export function VideoAgent({ className }: { className?: string }) {
                 },
                 ...c,
               ])
+              setPendingPrompt(null)
               setStatus('COMPLETED')
             } else {
+              setPendingPrompt(null)
               setStatus('error')
               setError('Job finished but no video URL was returned.')
             }
@@ -144,12 +148,14 @@ export function VideoAgent({ className }: { className?: string }) {
           }
         } catch (e) {
           cleanup()
+          setPendingPrompt(null)
           setStatus('error')
           setError(e instanceof Error ? e.message : 'Status check failed')
         }
       }, 3000)
     } catch (e) {
       cleanup()
+      setPendingPrompt(null)
       setStatus('error')
       setError(e instanceof Error ? e.message : 'Failed to submit job')
     }
@@ -312,30 +318,7 @@ export function VideoAgent({ className }: { className?: string }) {
         </div>
 
         <div className="flex-1 min-h-0 overflow-auto p-5">
-          {/* active render placeholder */}
-          {busy && (
-            <div className="flex flex-col items-center justify-center gap-4 mb-6">
-              <div
-                className="relative flex items-center justify-center rounded-2xl border border-cyan-400/25 bg-black/40 overflow-hidden"
-                style={{ width: 200, aspectRatio: '9/16' }}
-              >
-                <div className="absolute inset-0 video-render-shimmer" />
-                <div className="relative flex flex-col items-center gap-3 text-center px-4">
-                  <Loader2Icon className="w-7 h-7 text-cyan-300 animate-spin" />
-                  <p className="text-xs font-mono text-cyan-200">{statusLabel}</p>
-                  <p className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
-                    <ClockIcon className="w-3 h-3" /> {elapsed}s elapsed
-                  </p>
-                </div>
-              </div>
-              <p className="text-[10px] font-mono text-slate-600 max-w-xs text-center leading-relaxed">
-                Video generation runs on fal&apos;s GPU queue — typically 30s–2min.
-                Keep this tab open.
-              </p>
-            </div>
-          )}
-
-          {/* empty state */}
+          {/* empty state — no clips and not generating */}
           {!busy && clips.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
               <div
@@ -350,9 +333,31 @@ export function VideoAgent({ className }: { className?: string }) {
             </div>
           )}
 
-          {/* clip gallery */}
-          {clips.length > 0 && (
+          {/* clip gallery — pending card stays at top-left of grid */}
+          {(busy || clips.length > 0) && (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-4">
+              {busy && pendingPrompt !== null && (
+                <div className="flex flex-col rounded-xl border border-cyan-400/25 bg-black/40 overflow-hidden">
+                  <div
+                    className="relative flex items-center justify-center bg-black overflow-hidden"
+                    style={{ aspectRatio: '9/16' }}
+                  >
+                    <div className="absolute inset-0 video-render-shimmer" />
+                    <div className="relative flex flex-col items-center gap-3 text-center px-4">
+                      <Loader2Icon className="w-7 h-7 text-cyan-300 animate-spin" />
+                      <p className="text-xs font-mono text-cyan-200">{statusLabel}</p>
+                      <p className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
+                        <ClockIcon className="w-3 h-3" /> {elapsed}s
+                      </p>
+                    </div>
+                  </div>
+                  <div className="px-2.5 py-2">
+                    <p className="text-[10px] font-mono text-slate-500 truncate" title={pendingPrompt}>
+                      {pendingPrompt}
+                    </p>
+                  </div>
+                </div>
+              )}
               {clips.map((clip) => (
                 <ClipCard key={clip.id + clip.createdAt} clip={clip} />
               ))}
