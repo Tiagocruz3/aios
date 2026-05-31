@@ -251,6 +251,50 @@ function AppIcon({ app, onLaunch }: { app: AppDef; onLaunch: (a: AppDef) => void
   )
 }
 
+/* ── 3D cube launch transition ──────────────────────────────────── */
+function LaunchTransition({ app }: { app: AppDef }) {
+  const a = accentMap[app.accent]
+  const Icon = app.icon
+  return (
+    <div className="launch-scene">
+      <div className="launch-cube">
+        {/* front face = the desktop turning away */}
+        <div className="launch-face launch-face-front">
+          <div className="flex flex-col items-center gap-3 opacity-60">
+            <BrainCircuitIcon className="w-10 h-10 text-cyan-300/80" />
+            <span className="text-xs font-mono tracking-[0.3em] text-cyan-400/60">
+              HELIX&nbsp;OS
+            </span>
+          </div>
+        </div>
+
+        {/* right face = the app swinging in */}
+        <div className="launch-face launch-face-right">
+          <div className="flex flex-col items-center gap-5">
+            <span
+              className={`relative flex items-center justify-center w-24 h-24 rounded-3xl border ${a.ring} ${a.bg} shadow-[0_0_60px_rgba(0,200,255,0.3)]`}
+              style={{ animation: 'launch-icon-pop 850ms cubic-bezier(.34,1.56,.64,1) forwards' }}
+            >
+              <Icon className={`w-11 h-11 ${a.icon}`} />
+            </span>
+            <div className="text-center">
+              <p className="text-lg font-mono font-bold text-white/90 tracking-wide">
+                {app.name}
+              </p>
+              <p className="text-xs font-mono text-cyan-400/70 mt-1 tracking-[0.25em]">
+                LAUNCHING
+              </p>
+            </div>
+            <div className="w-44 h-1 rounded-full bg-white/10 overflow-hidden">
+              <div className="launch-progress h-full rounded-full bg-gradient-to-r from-cyan-400 to-purple-400" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function Landing() {
   const router = useRouter()
   const clock = useClock()
@@ -259,6 +303,7 @@ export function Landing() {
   const net = useMeter(12, 24)
   const [booting, setBooting] = useState(true)
   const [bootLine, setBootLine] = useState(0)
+  const [launching, setLaunching] = useState<AppDef | null>(null)
 
   const bootLines = [
     'INITIALISING HELIX KERNEL...',
@@ -278,7 +323,11 @@ export function Landing() {
   }, [bootLine, bootLines.length])
 
   const launch = (app: AppDef) => {
-    if (app.href) router.push(app.href)
+    if (!app.href || launching) return
+    setLaunching(app)
+    // Prefetch then navigate once the cube has rotated into the app face.
+    router.prefetch(app.href)
+    setTimeout(() => router.push(app.href as string), 780)
   }
 
   const time = clock
@@ -307,6 +356,9 @@ export function Landing() {
 
   return (
     <div className="relative flex flex-col h-screen max-h-screen overflow-hidden select-none">
+      {/* ── 3D cube launch transition ──────────────────────────────── */}
+      {launching && <LaunchTransition app={launching} />}
+
       {/* ── TOP STATUS BAR (menu bar) ──────────────────────────────── */}
       <header className="relative z-20 flex items-center justify-between px-4 py-2 text-xs font-mono border-b border-cyan-500/15 bg-black/30 backdrop-blur-md">
         <div className="flex items-center gap-3">
