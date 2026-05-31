@@ -140,8 +140,8 @@ type AppDef = {
 
 const apps: AppDef[] = [
   { id: 'helix',    name: 'Helix Coder',  desc: 'AI full-stack engineer',   icon: ZapIcon,        href: '/agent',            status: 'online' },
-  { id: 'git',      name: 'Git Manager',  desc: 'Repositories & commits',   icon: GitBranchIcon,  href: '/agent?app=git',    status: 'online' },
-  { id: 'vercel',   name: 'Vercel',       desc: 'Deployments & hosting',    icon: CloudIcon,      href: '/agent?app=vercel', status: 'online' },
+  { id: 'git',      name: 'Git Manager',  desc: 'Repositories & commits',   icon: GitBranchIcon,  href: '/git',              status: 'online' },
+  { id: 'vercel',   name: 'Vercel',       desc: 'Deployments & hosting',    icon: CloudIcon,      href: '/vercel',           status: 'online' },
   { id: 'supabase', name: 'Supabase',     desc: 'Backend & database',       icon: DatabaseIcon,   href: '/agent?app=supabase', status: 'online' },
   { id: 'terminal', name: 'Terminal',     desc: 'System shell',             icon: TerminalIcon,   status: 'soon' },
   { id: 'new',      name: 'New App',      desc: 'Build with Helix',         icon: PlusIcon,       href: '/agent', status: 'online' },
