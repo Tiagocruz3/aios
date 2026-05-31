@@ -76,7 +76,12 @@ export function ErrorMonitor({ children, debounceTimeMs = 10000 }: Props) {
     }
 
     startTransition(async () => {
-      const summary = await getSummary(errors, prev)
+      let summary: Awaited<ReturnType<typeof getSummary>>
+      try {
+        summary = await getSummary(errors, prev)
+      } catch {
+        return
+      }
       if (summary.shouldBeFixed) {
         newErrors.forEach((key) => {
           errorReportCount.current.set(key, 1)

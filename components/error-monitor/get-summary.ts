@@ -7,7 +7,7 @@ export async function getSummary(lines: Line[], previous: Line[]) {
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch errors summary: ${response.statusText}`)
+    return { shouldBeFixed: false, summary: '' } as const
   }
 
   const body = await response.json()
