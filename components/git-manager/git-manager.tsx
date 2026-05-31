@@ -250,17 +250,20 @@ function RepoWorkspace({ token, user }: { token: string; user: GhUser }) {
 
   const confirmDelete = async () => {
     if (!repoToDelete) return
-    setDeleting(true)
+    const target = repoToDelete
+    const snapshot = repos
+    // Optimistic: drop it from the UI immediately, close the modal.
+    setRepos((prev) => prev.filter((r) => r.id !== target.id))
+    if (activeRepo?.id === target.id) setActiveRepo(null)
+    setRepoToDelete(null)
     setDeleteError(null)
     try {
-      await deleteRepo(token, repoToDelete.owner.login, repoToDelete.name)
-      if (activeRepo?.id === repoToDelete.id) setActiveRepo(null)
-      setRepoToDelete(null)
-      await loadRepos()
+      await deleteRepo(token, target.owner.login, target.name)
     } catch (e) {
+      // Rollback and resurface the modal with the error.
+      setRepos(snapshot)
+      setRepoToDelete(target)
       setDeleteError(e instanceof Error ? e.message : 'Failed to delete repository')
-    } finally {
-      setDeleting(false)
     }
   }
 
@@ -361,7 +364,7 @@ function RepoWorkspace({ token, user }: { token: string; user: GhUser }) {
 
                   {/* folder icon */}
                   <div className="flex items-center justify-between">
-                    <FolderIcon className="w-9 h-9 text-cyan-400/70 group-hover:text-cyan-300 transition-colors" strokeWidth={1.25} />
+                    <FolderIcon className="w-12 h-12 text-cyan-400/70 group-hover:text-cyan-300 transition-colors" strokeWidth={1.25} />
                     {repo.private
                       ? <LockIcon className="w-3 h-3 text-amber-500/70" />
                       : <GlobeIcon className="w-3 h-3 text-emerald-500/70" />
@@ -531,17 +534,19 @@ function RepoExplorer({
 
   const confirmFileDelete = async () => {
     if (!fileToDelete) return
-    setFileDeleting(true)
+    const target = fileToDelete
+    const snapshot = entries
+    // Optimistic: remove from the tree immediately, close the modal.
+    setEntries((prev) => prev.filter((e) => e.path !== target.path))
+    if (open?.path === target.path) setOpen(null)
+    setFileToDelete(null)
     setFileDeleteError(null)
     try {
-      await deleteFile(token, owner, repo.name, fileToDelete.path, `Delete ${fileToDelete.path} via Helix`, fileToDelete.sha)
-      if (open?.path === fileToDelete.path) setOpen(null)
-      setFileToDelete(null)
-      await loadDir(path)
+      await deleteFile(token, owner, repo.name, target.path, `Delete ${target.path} via Helix`, target.sha)
     } catch (e) {
+      setEntries(snapshot)
+      setFileToDelete(target)
       setFileDeleteError(e instanceof Error ? e.message : 'Failed to delete file')
-    } finally {
-      setFileDeleting(false)
     }
   }
 

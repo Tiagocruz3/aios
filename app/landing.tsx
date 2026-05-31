@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, forwardRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, forwardRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ZapIcon, GitBranchIcon, CloudIcon, DatabaseIcon,
@@ -416,6 +416,8 @@ export function Landing() {
   // refs for SVG wire overlay
   const panelRefs = useRef<Array<HTMLButtonElement | null>>(Array(6).fill(null))
   const coreRef   = useRef<HTMLDivElement | null>(null)
+  // true only on the very first command-centre load this session
+  const freshBoot = useRef(false)
 
   const bootLines = [
     'INITIALISING HELIX KERNEL...',
@@ -425,12 +427,25 @@ export function Landing() {
     'COMMAND CENTRE ONLINE.',
   ]
 
+  // Decide before paint: skip the boot sequence when returning from an
+  // in-app page (the boot only plays once per browser session).
+  useLayoutEffect(() => {
+    if (sessionStorage.getItem('helix-booted')) {
+      setBooting(false)
+      requestAnimationFrame(() => setWireReady(true))
+    } else {
+      freshBoot.current = true
+    }
+  }, [])
+
   useEffect(() => {
+    if (!freshBoot.current) return
     if (bootLine < bootLines.length) {
       const t = setTimeout(() => setBootLine((l) => l + 1), 360)
       return () => clearTimeout(t)
     }
     const t = setTimeout(() => {
+      sessionStorage.setItem('helix-booted', '1')
       setBooting(false)
       // give layout one frame to paint before measuring
       requestAnimationFrame(() => setWireReady(true))
