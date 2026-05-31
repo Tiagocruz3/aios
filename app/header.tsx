@@ -17,7 +17,7 @@ export function Header({ className }: Props) {
   const handleNew = () => {
     // Fresh session: clear the persisted prompt and reload from the root.
     window.localStorage.removeItem('prompt-input')
-    window.location.assign('/')
+    window.location.assign('/agent')
   }
 
   return (

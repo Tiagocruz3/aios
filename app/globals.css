@@ -837,3 +837,31 @@ body {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }
 }
+
+/* ============================================================
+   LANDING PAGE — HUD / JARVIS STYLES
+   ============================================================ */
+
+.landing-scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 200, 255, 0.0) 20%,
+    rgba(0, 200, 255, 0.35) 50%,
+    rgba(0, 200, 255, 0.0) 80%,
+    transparent 100%
+  );
+  animation: landing-scan 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes landing-scan {
+  0%   { top: -2px; opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 0.6; }
+  100% { top: 100%; opacity: 0; }
+}
