@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   ZapIcon, GitBranchIcon, CloudIcon, DatabaseIcon,
   VideoIcon, BrainCircuitIcon, LockIcon,
-  WifiIcon, CpuIcon, CircleIcon, LayersIcon, AtomIcon,
+  WifiIcon, CpuIcon, CircleIcon, LayersIcon, AtomIcon, CalendarIcon,
 } from 'lucide-react'
 
 /* ── clock ─────────────────────────────────────────────────────── */
@@ -146,6 +146,7 @@ const apps: AppDef[] = [
   { id: 'supabase', name: 'Supabase',     desc: 'Backend & database',       icon: DatabaseIcon,   href: '/agent?app=supabase', status: 'online' },
   { id: 'video',    name: 'Video Agent',  desc: 'AI YouTube Shorts',        icon: VideoIcon,      href: '/video',            status: 'online' },
   { id: 'hyperdrive', name: 'Hyper Drive', desc: 'Media library',            icon: LayersIcon,     href: '/hyperdrive', status: 'online' },
+  { id: 'calendar',  name: 'Calendar',    desc: 'Agent automations & plans', icon: CalendarIcon,   href: '/calendar',   status: 'online' },
 ]
 
 const GRAPHS = [
