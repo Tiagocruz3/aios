@@ -1,37 +1,31 @@
 import type { DataPart } from '@/ai/messages/data-parts'
-import { BoxIcon, CheckIcon, XIcon } from 'lucide-react'
-import { Spinner } from './spinner'
-import { ToolHeader } from '../tool-header'
-import { ToolMessage } from '../tool-message'
+import { BoxIcon } from 'lucide-react'
+import { TaskCard, TaskCheck, TaskError, TaskSpinner } from '../task-card'
 
-interface Props {
-  message: DataPart['create-sandbox']
-}
+export function CreateSandbox({ message }: { message: DataPart['create-sandbox'] }) {
+  const status =
+    message.status === 'done' ? 'done'
+    : message.status === 'error' ? 'error'
+    : 'loading'
 
-export function CreateSandbox({ message }: Props) {
+  const badge =
+    status === 'loading' ? 'INITIALIZING'
+    : status === 'done' ? 'READY'
+    : 'FAILED'
+
+  const label =
+    status === 'loading' ? 'Initializing sandbox environment…'
+    : status === 'done' ? 'Sandbox environment ready'
+    : 'Failed to initialize sandbox'
+
   return (
-    <ToolMessage>
-      <ToolHeader>
-        <BoxIcon className="w-3.5 h-3.5" />
-        Create Sandbox
-      </ToolHeader>
-      <div className="relative pl-6 min-h-5">
-        <Spinner
-          className="absolute left-0 top-0"
-          loading={message.status === 'loading'}
-        >
-          {message.status === 'error' ? (
-            <XIcon className="w-4 h-4 text-red-700" />
-          ) : (
-            <CheckIcon className="w-4 h-4" />
-          )}
-        </Spinner>
-        <span>
-          {message.status === 'done' && 'Sandbox created successfully'}
-          {message.status === 'loading' && 'Creating Sandbox'}
-          {message.status === 'error' && 'Failed to create sandbox'}
-        </span>
+    <TaskCard status={status} icon={<BoxIcon className="w-3.5 h-3.5" />} title="Create Sandbox" badge={badge}>
+      <div className="flex items-center gap-2 mt-0.5">
+        {status === 'loading' && <TaskSpinner />}
+        {status === 'done'    && <TaskCheck />}
+        {status === 'error'   && <TaskError />}
+        <span>{label}</span>
       </div>
-    </ToolMessage>
+    </TaskCard>
   )
 }

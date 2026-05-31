@@ -1,35 +1,36 @@
 import type { DataPart } from '@/ai/messages/data-parts'
-import { CheckIcon, LinkIcon } from 'lucide-react'
-import { Spinner } from './spinner'
-import { ToolHeader } from '../tool-header'
-import { ToolMessage } from '../tool-message'
+import { Link2Icon, ExternalLinkIcon } from 'lucide-react'
+import { TaskCard, TaskCheck, TaskSpinner } from '../task-card'
 
-export function GetSandboxURL({
-  message,
-}: {
-  message: DataPart['get-sandbox-url']
-}) {
+export function GetSandboxURL({ message }: { message: DataPart['get-sandbox-url'] }) {
+  const isLoading = message.status === 'loading'
+  const status = isLoading ? 'loading' : 'done'
+
   return (
-    <ToolMessage>
-      <ToolHeader>
-        <LinkIcon className="w-3.5 h-3.5" />
-        <span>Get Sandbox URL</span>
-      </ToolHeader>
-      <div className="relative pl-6 min-h-5">
-        <Spinner
-          className="absolute left-0 top-0"
-          loading={message.status === 'loading'}
-        >
-          <CheckIcon className="w-4 h-4" />
-        </Spinner>
+    <TaskCard
+      status={status}
+      icon={<Link2Icon className="w-3.5 h-3.5" />}
+      title="Sandbox URL"
+      badge={isLoading ? 'RESOLVING' : 'LIVE'}
+    >
+      <div className="flex items-center gap-2 mt-0.5">
+        {isLoading ? <TaskSpinner /> : <TaskCheck />}
         {message.url ? (
-          <a href={message.url} target="_blank">
-            {message.url}
+          <a
+            href={message.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-cyan-300 hover:text-cyan-200 transition-colors text-xs break-all group"
+          >
+            <span className="underline underline-offset-2 decoration-cyan-500/40 group-hover:decoration-cyan-400">
+              {message.url}
+            </span>
+            <ExternalLinkIcon className="w-3 h-3 flex-shrink-0 opacity-60" />
           </a>
         ) : (
-          <span>Getting Sandbox URL</span>
+          <span className="text-xs text-slate-500">Resolving sandbox URL…</span>
         )}
       </div>
-    </ToolMessage>
+    </TaskCard>
   )
 }

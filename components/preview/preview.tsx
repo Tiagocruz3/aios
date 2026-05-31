@@ -1,7 +1,13 @@
 'use client'
 
 import { BarLoader } from 'react-spinners'
-import { CompassIcon, RefreshCwIcon } from 'lucide-react'
+import {
+  CompassIcon,
+  RefreshCwIcon,
+  Maximize2Icon,
+  Minimize2Icon,
+  ExternalLinkIcon,
+} from 'lucide-react'
 import { Panel, PanelHeader } from '@/components/panels/panels'
 import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -17,7 +23,10 @@ export function Preview({ className, disabled, url }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [inputValue, setInputValue] = useState(url || '')
   const [isLoading, setIsLoading] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
   useEffect(() => {
     setCurrentUrl(url)
@@ -47,40 +56,73 @@ export function Preview({ className, disabled, url }: Props) {
     }
   }
 
+  const openInNewWindow = () => {
+    if (currentUrl) window.open(currentUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  const toggleFullscreen = () => {
+    const el = containerRef.current
+    if (!el) return
+    if (!isFullscreen) {
+      el.requestFullscreen?.().catch(() => {})
+    } else {
+      document.exitFullscreen?.().catch(() => {})
+    }
+  }
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
+  }, [])
+
   return (
-    <Panel className={className}>
+    <div ref={containerRef} className={cn('flex flex-col h-full', className)}>
+    <Panel className="flex-1 h-full">
       <PanelHeader>
-        <div className="absolute flex items-center space-x-1">
-          <a href={currentUrl} target="_blank" className="cursor-pointer px-1 text-cyan-600 hover:text-cyan-400 transition-colors">
-            <CompassIcon className="w-4" />
-          </a>
-          <button
-            onClick={refreshIframe}
-            type="button"
-            className={cn('cursor-pointer px-1 text-cyan-600 hover:text-cyan-400 transition-colors', {
-              'animate-spin': isLoading,
-            })}
+        {/* Left controls */}
+        <div className="absolute flex items-center gap-0.5 left-2.5">
+          <IconBtn onClick={openInNewWindow} title="Open in new window">
+            <ExternalLinkIcon className="w-3.5 h-3.5" />
+          </IconBtn>
+          <IconBtn
+            href={currentUrl}
+            title="Open in browser"
           >
-            <RefreshCwIcon className="w-4" />
-          </button>
+            <CompassIcon className="w-3.5 h-3.5" />
+          </IconBtn>
+          <IconBtn
+            onClick={refreshIframe}
+            title="Refresh"
+            className={isLoading ? 'animate-spin' : ''}
+          >
+            <RefreshCwIcon className="w-3.5 h-3.5" />
+          </IconBtn>
         </div>
 
-        <div className="m-auto h-6">
+        {/* URL bar */}
+        <div className="mx-auto h-6">
           {url && (
             <input
               type="text"
-              className="font-mono text-xs h-6 border border-cyan-500/20 px-4 bg-black/40 text-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/40 min-w-[300px] placeholder:text-slate-600"
-              onChange={(event) => setInputValue(event.target.value)}
-              onClick={(event) => event.currentTarget.select()}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.currentTarget.blur()
-                  loadNewUrl()
-                }
+              className="font-mono text-xs h-6 border border-cyan-500/20 px-3 bg-black/40 text-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-cyan-500/40 min-w-[260px] placeholder:text-slate-600"
+              onChange={(e) => setInputValue(e.target.value)}
+              onClick={(e) => e.currentTarget.select()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.currentTarget.blur(); loadNewUrl() }
               }}
               value={inputValue}
             />
           )}
+        </div>
+
+        {/* Right: fullscreen */}
+        <div className="absolute flex items-center right-2.5">
+          <IconBtn onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
+            {isFullscreen
+              ? <Minimize2Icon className="w-3.5 h-3.5" />
+              : <Maximize2Icon className="w-3.5 h-3.5" />}
+          </IconBtn>
         </div>
       </PanelHeader>
 
@@ -90,16 +132,17 @@ export function Preview({ className, disabled, url }: Props) {
             <iframe
               ref={iframeRef}
               src={currentUrl}
-              className="absolute inset-0 w-full h-full border-0"
+              className="absolute inset-0 w-full h-full border-0 bg-white"
               onLoad={() => { setIsLoading(false); setError(null) }}
               onError={() => { setIsLoading(false); setError('Failed to load') }}
               title="Preview"
+              allow="cross-origin-isolated"
             />
 
             {isLoading && !error && (
               <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center flex-col gap-3 z-10">
                 <BarLoader color="#00ccff" width={120} />
-                <span className="text-cyan-500/70 text-xs font-mono">Loading preview…</span>
+                <span className="text-cyan-500/70 text-xs font-mono tracking-wider">Loading preview…</span>
               </div>
             )}
 
@@ -113,9 +156,9 @@ export function Preview({ className, disabled, url }: Props) {
                     if (currentUrl) {
                       setIsLoading(true)
                       setError(null)
-                      const newUrl = new URL(currentUrl)
-                      newUrl.searchParams.set('t', Date.now().toString())
-                      setCurrentUrl(newUrl.toString())
+                      const u = new URL(currentUrl)
+                      u.searchParams.set('t', Date.now().toString())
+                      setCurrentUrl(u.toString())
                     }
                   }}
                 >
@@ -135,5 +178,29 @@ export function Preview({ className, disabled, url }: Props) {
         )}
       </div>
     </Panel>
+    </div>
   )
+}
+
+function IconBtn({
+  onClick,
+  href,
+  children,
+  title,
+  className,
+}: {
+  onClick?: () => void
+  href?: string
+  children: React.ReactNode
+  title?: string
+  className?: string
+}) {
+  const cls = cn(
+    'flex items-center justify-center w-6 h-6 rounded text-cyan-600 hover:text-cyan-300 hover:bg-cyan-500/10 transition-all cursor-pointer',
+    className
+  )
+  if (href) {
+    return <a href={href} target="_blank" rel="noopener noreferrer" className={cls} title={title}>{children}</a>
+  }
+  return <button type="button" onClick={onClick} className={cls} title={title}>{children}</button>
 }
