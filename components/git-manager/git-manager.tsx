@@ -18,13 +18,12 @@ import {
   LogOutIcon,
   Loader2Icon,
   ExternalLinkIcon,
-  AlertTriangleIcon,
-  XIcon,
 } from 'lucide-react'
 import {
   HOLOGRAPHIC_THEME,
   getLanguage,
 } from '@/components/file-explorer/monaco-editor'
+import { ConfirmDeleteModal } from '@/components/ui/confirm-delete-modal'
 import {
   getUser,
   listRepos,
@@ -47,121 +46,6 @@ interface OpenFile {
   sha: string
   content: string
   dirty: boolean
-}
-
-/* ── Confirm-delete modal ────────────────────────────────────────── */
-interface ConfirmDeleteProps {
-  title: string
-  description: string
-  confirmLabel: string   // the name the user must type to confirm
-  busy: boolean
-  error: string | null
-  onConfirm: () => void
-  onCancel: () => void
-}
-
-function ConfirmDeleteModal({
-  title,
-  description,
-  confirmLabel,
-  busy,
-  error,
-  onConfirm,
-  onCancel,
-}: ConfirmDeleteProps) {
-  const [typed, setTyped] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
-
-  const ready = typed === confirmLabel
-
-  return (
-    /* backdrop */
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,4,12,0.82)', backdropFilter: 'blur(6px)' }}
-    >
-      <div
-        className="relative w-full max-w-md border border-red-500/25 bg-[#09050f] shadow-[0_0_60px_-10px_rgba(239,68,68,0.35)]"
-        style={{ clipPath: 'polygon(0 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%)' }}
-      >
-        {/* close */}
-        <button
-          type="button"
-          onClick={onCancel}
-          className="absolute top-3 right-3 text-slate-500 hover:text-slate-300 transition-colors"
-        >
-          <XIcon className="w-4 h-4" />
-        </button>
-
-        <div className="p-6 space-y-5">
-          {/* header */}
-          <div className="flex items-start gap-3">
-            <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/30 flex-shrink-0">
-              <AlertTriangleIcon className="w-5 h-5 text-red-400" />
-            </span>
-            <div>
-              <h2 className="text-sm font-mono font-semibold text-white/90">{title}</h2>
-              <p className="text-xs font-mono text-slate-500 mt-1 leading-relaxed">{description}</p>
-            </div>
-          </div>
-
-          {/* type-to-confirm */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-mono text-slate-500 tracking-wider uppercase">
-              Type <span className="text-red-400 font-semibold">{confirmLabel}</span> to confirm
-            </label>
-            <input
-              ref={inputRef}
-              value={typed}
-              onChange={(e) => setTyped(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && ready && !busy && onConfirm()}
-              spellCheck={false}
-              autoComplete="off"
-              className="w-full font-mono text-xs h-9 px-3 bg-black/60 border border-white/10 rounded-md text-slate-200 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30 placeholder:text-slate-700"
-              placeholder={confirmLabel}
-            />
-          </div>
-
-          {/* error */}
-          {error && (
-            <p className="text-xs font-mono text-red-400 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
-              {error}
-            </p>
-          )}
-
-          {/* actions */}
-          <div className="flex items-center justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={busy}
-              className="h-8 px-4 rounded-md text-xs font-mono text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={!ready || busy}
-              className={cn(
-                'flex items-center gap-1.5 h-8 px-4 rounded-md text-xs font-mono font-semibold transition-all',
-                ready && !busy
-                  ? 'bg-red-600 hover:bg-red-500 text-white shadow-[0_0_16px_rgba(239,68,68,0.35)]'
-                  : 'bg-slate-800/60 text-slate-600 cursor-not-allowed'
-              )}
-            >
-              {busy && <Loader2Icon className="w-3.5 h-3.5 animate-spin" />}
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
 }
 
 /* ── New-file inline form ────────────────────────────────────────── */
@@ -436,8 +320,8 @@ function RepoWorkspace({ token, user }: { token: string; user: GhUser }) {
           <CreateRepoForm onCancel={() => setCreating(false)} onCreate={handleCreate} />
         )}
 
-        {/* Repo list */}
-        <div className="flex-1 min-h-0 overflow-auto">
+        {/* Repo grid — folder-style library */}
+        <div className="flex-1 min-h-0 overflow-auto p-3">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2Icon className="w-5 h-5 text-cyan-500 animate-spin" />
@@ -447,42 +331,52 @@ function RepoWorkspace({ token, user }: { token: string; user: GhUser }) {
           ) : visible.length === 0 ? (
             <p className="text-xs text-slate-600 font-mono p-4">No repositories found.</p>
           ) : (
-            <ul className="divide-y divide-white/5">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
               {visible.map((repo) => (
-                <li
+                <div
                   key={repo.id}
-                  className="group flex items-center gap-2 px-3 py-2.5 hover:bg-white/5 cursor-pointer transition-colors"
                   onClick={() => setActiveRepo(repo)}
+                  className="repo-folder group relative flex flex-col gap-2 p-3 cursor-pointer"
                 >
-                  {repo.private
-                    ? <LockIcon className="w-3.5 h-3.5 text-amber-500/70 flex-shrink-0" />
-                    : <GlobeIcon className="w-3.5 h-3.5 text-emerald-500/70 flex-shrink-0" />
-                  }
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-mono font-semibold text-slate-200 truncate">{repo.name}</p>
-                    {repo.description && (
-                      <p className="text-[0.7rem] text-slate-500 truncate">{repo.description}</p>
-                    )}
+                  {/* hover actions */}
+                  <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <a
+                      href={repo.html_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      title="Open on GitHub"
+                      className="text-slate-500 hover:text-cyan-300 transition-colors"
+                    >
+                      <ExternalLinkIcon className="w-3.5 h-3.5" />
+                    </a>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setRepoToDelete(repo) }}
+                      title="Delete repository"
+                      className="text-slate-500 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2Icon className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <a
-                    href={repo.html_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-cyan-300 transition-all flex-shrink-0"
-                  >
-                    <ExternalLinkIcon className="w-3.5 h-3.5" />
-                  </a>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setRepoToDelete(repo) }}
-                    title="Delete repository"
-                    className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all flex-shrink-0"
-                  >
-                    <Trash2Icon className="w-3.5 h-3.5" />
-                  </button>
-                </li>
+
+                  {/* folder icon */}
+                  <div className="flex items-center justify-between">
+                    <FolderIcon className="w-9 h-9 text-cyan-400/70 group-hover:text-cyan-300 transition-colors" strokeWidth={1.25} />
+                    {repo.private
+                      ? <LockIcon className="w-3 h-3 text-amber-500/70" />
+                      : <GlobeIcon className="w-3 h-3 text-emerald-500/70" />
+                    }
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="text-xs font-mono font-semibold text-slate-200 truncate">{repo.name}</p>
+                    <p className="text-[0.65rem] text-slate-600 truncate mt-0.5">
+                      {repo.description || repo.default_branch}
+                    </p>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
 

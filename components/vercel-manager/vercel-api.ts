@@ -116,3 +116,17 @@ export function liveUrl(project: VercelProject): string | null {
     project.latestDeployments?.[0]
   return latest?.url ? `https://${latest.url}` : null
 }
+
+// Live website thumbnail via the free Microlink screenshot service.
+export function thumbnailUrl(siteUrl: string): string {
+  const params = new URLSearchParams({
+    url: siteUrl,
+    screenshot: 'true',
+    meta: 'false',
+    embed: 'screenshot.url',
+    'viewport.width': '1280',
+    'viewport.height': '800',
+    waitUntil: 'networkidle2',
+  })
+  return `https://api.microlink.io/?${params.toString()}`
+}
