@@ -11,8 +11,8 @@ import type { Metadata, Viewport } from 'next'
 import { Suspense } from 'react'
 import './globals.css'
 
-const title = 'OSS Vibe Coding Platform'
-const description = `An end-to-end AI coding platform. Enter text prompts and the agent creates full stack applications using Vercel Sandbox, AI Gateway, and Next.js.`
+const title = 'Helix'
+const description = `Helix is an end-to-end AI coding platform. Enter text prompts and the agent creates full stack applications using Vercel Sandbox, AI Gateway, and Next.js.`
 
 export const metadata: Metadata = {
   title,

@@ -1,7 +1,7 @@
 {
-  "name": "OSS Vibe Coding Platform",
-  "short_name": "VibeCode",
-  "description": "AI-powered full-stack coding platform",
+  "name": "Helix",
+  "short_name": "Helix",
+  "description": "Helix — AI-powered full-stack coding platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000510",
