@@ -55,10 +55,15 @@ export function Preview({ className, disabled, url }: Props) {
     }
   }
 
+  const openInNewTab = () => {
+    // Triggered by a direct user click, so it is not blocked by popup blockers.
+    if (currentUrl) window.open(currentUrl, '_blank', 'noopener,noreferrer')
+  }
+
   const toggleFullscreen = () => {
     const el = containerRef.current
     if (!el) return
-    if (!isFullscreen) {
+    if (!document.fullscreenElement) {
       el.requestFullscreen?.().catch(() => {})
     } else {
       document.exitFullscreen?.().catch(() => {})
@@ -78,7 +83,7 @@ export function Preview({ className, disabled, url }: Props) {
         {/* Left controls */}
         <div className="absolute flex items-center gap-0.5 left-2.5">
           <IconBtn
-            href={currentUrl}
+            onClick={openInNewTab}
             disabled={!currentUrl}
             title="Open preview in new tab"
           >
@@ -195,7 +200,7 @@ function IconBtn({
     'flex items-center justify-center w-6 h-6 rounded transition-all',
     disabled
       ? 'text-slate-700 cursor-not-allowed opacity-50'
-      : 'text-cyan-600 hover:text-cyan-300 hover:bg-cyan-500/10 cursor-pointer',
+      : 'text-cyan-400 hover:text-cyan-200 hover:bg-cyan-500/15 cursor-pointer',
     className
   )
   if (href && !disabled) {

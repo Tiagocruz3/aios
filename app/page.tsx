@@ -1,13 +1,7 @@
 import { Chat } from './chat'
-import { FileExplorer } from './file-explorer'
 import { Header } from './header'
 import { Horizontal } from '@/components/layout/panels'
-import { Logs } from './logs'
-import { Preview } from './preview'
 import { RightPanel } from '@/components/layout/right-panel'
-import { GitManager } from '@/components/git-manager/git-manager'
-import { VercelManager } from '@/components/vercel-manager/vercel-manager'
-import { TabContent, TabItem } from '@/components/tabs'
 import { Welcome } from '@/components/modals/welcome'
 import { cookies } from 'next/headers'
 import { getHorizontal } from '@/components/layout/sizing'
@@ -23,39 +17,17 @@ export default async function Page() {
       <div className="flex flex-col h-screen max-h-screen overflow-hidden p-2 gap-1.5">
         <Header className="flex items-center w-full flex-shrink-0" />
 
-        {/* Mobile tab bar */}
-        <ul className="mobile-tab-bar md:hidden flex-shrink-0">
-          <TabItem tabId="chat">Chat</TabItem>
-          <TabItem tabId="preview">Preview</TabItem>
-          <TabItem tabId="file-explorer">Code</TabItem>
-          <TabItem tabId="git">Git</TabItem>
-          <TabItem tabId="vercel">Vercel</TabItem>
-          <TabItem tabId="logs">Logs</TabItem>
-        </ul>
-
-        {/* Mobile layout */}
-        <div className="flex flex-1 w-full overflow-hidden md:hidden">
-          <TabContent tabId="chat" className="flex-1">
-            <Chat className="flex-1 overflow-hidden" />
-          </TabContent>
-          <TabContent tabId="preview" className="flex-1">
-            <Preview className="flex-1 overflow-hidden" />
-          </TabContent>
-          <TabContent tabId="file-explorer" className="flex-1">
-            <FileExplorer className="flex-1 overflow-hidden" />
-          </TabContent>
-          <TabContent tabId="git" className="flex-1">
-            <GitManager className="flex-1 overflow-hidden" />
-          </TabContent>
-          <TabContent tabId="vercel" className="flex-1">
-            <VercelManager className="flex-1 overflow-hidden" />
-          </TabContent>
-          <TabContent tabId="logs" className="flex-1">
-            <Logs className="flex-1 overflow-hidden" />
-          </TabContent>
+        {/* Mobile layout — chat on top, tabbed panel below */}
+        <div className="flex flex-col flex-1 w-full min-h-0 overflow-hidden gap-1.5 md:hidden">
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <Chat className="h-full overflow-hidden" />
+          </div>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <RightPanel />
+          </div>
         </div>
 
-        {/* Desktop layout — chat (32%) | stacked right panel (68%) */}
+        {/* Desktop layout — chat (32%) | tabbed right panel (68%) */}
         <div className="hidden flex-1 w-full min-h-0 overflow-hidden md:flex">
           <Horizontal
             defaultLayout={horizontalSizes ?? [32, 68]}
