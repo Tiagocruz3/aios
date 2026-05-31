@@ -9,6 +9,7 @@ import { RunCommand } from './run-command'
 import { ReportErrors } from './report-errors'
 import { Reasoning } from './reasoning'
 import { Text } from './text'
+import { PaperclipIcon } from 'lucide-react'
 import { memo } from 'react'
 
 interface Props {
@@ -34,6 +35,23 @@ export const MessagePart = memo(function MessagePart({
     return <ReportErrors message={part.data} />
   } else if (part.type === 'text') {
     return <Text part={part} />
+  } else if (part.type === 'file') {
+    if (part.mediaType?.startsWith('image/')) {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={part.url}
+          alt={part.filename ?? 'attachment'}
+          className="max-w-[220px] max-h-[220px] rounded-lg border border-cyan-500/20 object-cover"
+        />
+      )
+    }
+    return (
+      <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-cyan-500/20 bg-black/30 text-xs font-mono text-slate-300">
+        <PaperclipIcon className="w-3.5 h-3.5 text-cyan-400" />
+        {part.filename ?? 'file'}
+      </div>
+    )
   }
   return null
 })
