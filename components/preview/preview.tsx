@@ -3,7 +3,6 @@
 import { BarLoader } from 'react-spinners'
 import { CompassIcon, RefreshCwIcon } from 'lucide-react'
 import { Panel, PanelHeader } from '@/components/panels/panels'
-import { ScrollArea } from '@radix-ui/react-scroll-area'
 import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -19,7 +18,6 @@ export function Preview({ className, disabled, url }: Props) {
   const [inputValue, setInputValue] = useState(url || '')
   const [isLoading, setIsLoading] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const loadStartTime = useRef<number | null>(null)
 
   useEffect(() => {
     setCurrentUrl(url)
@@ -30,12 +28,9 @@ export function Preview({ className, disabled, url }: Props) {
     if (iframeRef.current && currentUrl) {
       setIsLoading(true)
       setError(null)
-      loadStartTime.current = Date.now()
       iframeRef.current.src = ''
       setTimeout(() => {
-        if (iframeRef.current) {
-          iframeRef.current.src = currentUrl
-        }
+        if (iframeRef.current) iframeRef.current.src = currentUrl
       }, 10)
     }
   }
@@ -45,7 +40,6 @@ export function Preview({ className, disabled, url }: Props) {
       if (inputValue !== currentUrl) {
         setIsLoading(true)
         setError(null)
-        loadStartTime.current = Date.now()
         iframeRef.current.src = inputValue
       } else {
         refreshIframe()
@@ -53,27 +47,17 @@ export function Preview({ className, disabled, url }: Props) {
     }
   }
 
-  const handleIframeLoad = () => {
-    setIsLoading(false)
-    setError(null)
-  }
-
-  const handleIframeError = () => {
-    setIsLoading(false)
-    setError('Failed to load the page')
-  }
-
   return (
     <Panel className={className}>
       <PanelHeader>
         <div className="absolute flex items-center space-x-1">
-          <a href={currentUrl} target="_blank" className="cursor-pointer px-1">
+          <a href={currentUrl} target="_blank" className="cursor-pointer px-1 text-cyan-600 hover:text-cyan-400 transition-colors">
             <CompassIcon className="w-4" />
           </a>
           <button
             onClick={refreshIframe}
             type="button"
-            className={cn('cursor-pointer px-1', {
+            className={cn('cursor-pointer px-1 text-cyan-600 hover:text-cyan-400 transition-colors', {
               'animate-spin': isLoading,
             })}
           >
@@ -85,7 +69,7 @@ export function Preview({ className, disabled, url }: Props) {
           {url && (
             <input
               type="text"
-              className="font-mono text-xs h-6 border border-gray-200 px-4 bg-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[300px]"
+              className="font-mono text-xs h-6 border border-cyan-500/20 px-4 bg-black/40 text-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/40 min-w-[300px] placeholder:text-slate-600"
               onChange={(event) => setInputValue(event.target.value)}
               onClick={(event) => event.currentTarget.select()}
               onKeyDown={(event) => {
@@ -100,32 +84,30 @@ export function Preview({ className, disabled, url }: Props) {
         </div>
       </PanelHeader>
 
-      <div className="flex h-[calc(100%-2rem-1px)] relative">
+      <div className="flex-1 relative overflow-hidden">
         {currentUrl && !disabled && (
           <>
-            <ScrollArea className="w-full">
-              <iframe
-                ref={iframeRef}
-                src={currentUrl}
-                className="w-full h-full"
-                onLoad={handleIframeLoad}
-                onError={handleIframeError}
-                title="Browser content"
-              />
-            </ScrollArea>
+            <iframe
+              ref={iframeRef}
+              src={currentUrl}
+              className="absolute inset-0 w-full h-full border-0"
+              onLoad={() => { setIsLoading(false); setError(null) }}
+              onError={() => { setIsLoading(false); setError('Failed to load') }}
+              title="Preview"
+            />
 
             {isLoading && !error && (
-              <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center flex-col gap-2">
-                <BarLoader color="#666" />
-                <span className="text-gray-500 text-xs">Loading...</span>
+              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center flex-col gap-3 z-10">
+                <BarLoader color="#00ccff" width={120} />
+                <span className="text-cyan-500/70 text-xs font-mono">Loading preview…</span>
               </div>
             )}
 
             {error && (
-              <div className="absolute inset-0 bg-white flex items-center justify-center flex-col gap-2">
-                <span className="text-red-500">Failed to load page</span>
+              <div className="absolute inset-0 bg-black/80 flex items-center justify-center flex-col gap-3 z-10">
+                <span className="text-red-400 font-mono text-sm">Failed to load page</span>
                 <button
-                  className="text-blue-500 hover:underline text-sm"
+                  className="text-cyan-400 hover:text-cyan-300 text-xs font-mono border border-cyan-500/20 px-3 py-1 rounded hover:bg-cyan-500/10 transition-all"
                   type="button"
                   onClick={() => {
                     if (currentUrl) {
@@ -142,6 +124,14 @@ export function Preview({ className, disabled, url }: Props) {
               </div>
             )}
           </>
+        )}
+
+        {(!currentUrl || disabled) && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-slate-600 font-mono text-xs uppercase tracking-widest">
+              No preview available
+            </span>
+          </div>
         )}
       </div>
     </Panel>
