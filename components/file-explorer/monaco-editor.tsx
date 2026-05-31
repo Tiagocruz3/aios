@@ -6,7 +6,7 @@ import type { Monaco } from '@monaco-editor/react'
 
 type IStandaloneThemeData = Parameters<Monaco['editor']['defineTheme']>[1]
 
-const HOLOGRAPHIC_THEME: IStandaloneThemeData = {
+export const HOLOGRAPHIC_THEME: IStandaloneThemeData = {
   base: 'vs-dark',
   inherit: true,
   rules: [
@@ -81,7 +81,7 @@ const LANGUAGE_MAP: Record<string, string> = {
   dockerfile: 'dockerfile', env: 'ini', tf: 'hcl', prisma: 'prisma',
 }
 
-function getLanguage(path: string): string {
+export function getLanguage(path: string): string {
   const filename = path.split('/').pop() ?? path
   if (filename.toLowerCase() === 'dockerfile') return 'dockerfile'
   if (filename.startsWith('.env')) return 'ini'

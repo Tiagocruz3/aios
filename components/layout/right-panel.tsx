@@ -4,16 +4,20 @@ import { useState } from 'react'
 import { Preview } from '@/app/preview'
 import { FileExplorer } from '@/app/file-explorer'
 import { Logs } from '@/app/logs'
+import { GitManager } from '@/components/git-manager/git-manager'
+import { VercelManager } from '@/components/vercel-manager/vercel-manager'
 import { cn } from '@/lib/utils'
 import {
   MonitorIcon,
   Code2Icon,
+  GitBranchIcon,
+  TriangleIcon,
   TerminalIcon,
   ChevronDownIcon,
   ChevronUpIcon,
 } from 'lucide-react'
 
-type View = 'preview' | 'code'
+type View = 'preview' | 'code' | 'git' | 'vercel'
 
 export function RightPanel() {
   const [activeView, setActiveView] = useState<View>('preview')
@@ -23,8 +27,7 @@ export function RightPanel() {
     <div className="flex flex-col h-full w-full">
       {/* Lovable-style prominent top bar */}
       <div className="flex items-stretch flex-shrink-0 h-10 border-b border-white/8 bg-[#080c12]">
-        {/* View tabs */}
-        <div className="flex items-stretch">
+        <div className="flex items-stretch overflow-x-auto">
           <ViewTab
             active={activeView === 'preview'}
             onClick={() => setActiveView('preview')}
@@ -36,6 +39,18 @@ export function RightPanel() {
             onClick={() => setActiveView('code')}
             icon={<Code2Icon className="w-4 h-4" />}
             label="Code"
+          />
+          <ViewTab
+            active={activeView === 'git'}
+            onClick={() => setActiveView('git')}
+            icon={<GitBranchIcon className="w-4 h-4" />}
+            label="Git"
+          />
+          <ViewTab
+            active={activeView === 'vercel'}
+            onClick={() => setActiveView('vercel')}
+            icon={<TriangleIcon className="w-3.5 h-3.5" />}
+            label="Vercel"
           />
         </div>
 
@@ -55,42 +70,27 @@ export function RightPanel() {
           >
             <TerminalIcon className="w-3.5 h-3.5" />
             Terminal
-            {logsOpen
-              ? <ChevronDownIcon className="w-3 h-3 ml-0.5" />
-              : <ChevronUpIcon className="w-3 h-3 ml-0.5" />
-            }
+            {logsOpen ? (
+              <ChevronDownIcon className="w-3 h-3 ml-0.5" />
+            ) : (
+              <ChevronUpIcon className="w-3 h-3 ml-0.5" />
+            )}
           </button>
         )}
       </div>
 
       {/* Content area */}
       <div className="relative flex-1 min-h-0">
-        {/* Preview panel — absolute, depth effect when inactive */}
-        <div
-          className={cn(
-            'absolute inset-0 transition-all duration-300 ease-in-out',
-            activeView === 'preview'
-              ? 'z-20 opacity-100 scale-100'
-              : 'z-10 opacity-[0.13] scale-[0.972] pointer-events-none blur-[1.5px]'
-          )}
-        >
+        {/* Preview panel */}
+        <ViewLayer active={activeView === 'preview'}>
           <Preview className="h-full" />
-        </div>
+        </ViewLayer>
 
-        {/* Code panel — file explorer + collapsible terminal at bottom */}
-        <div
-          className={cn(
-            'absolute inset-0 flex flex-col transition-all duration-300 ease-in-out',
-            activeView === 'code'
-              ? 'z-20 opacity-100 scale-100'
-              : 'z-10 opacity-[0.13] scale-[0.972] pointer-events-none blur-[1.5px]'
-          )}
-        >
+        {/* Code panel — file explorer + collapsible terminal */}
+        <ViewLayer active={activeView === 'code'} flexCol>
           <div className="flex-1 min-h-0">
             <FileExplorer className="h-full" />
           </div>
-
-          {/* Integrated terminal drawer */}
           <div
             className={cn(
               'flex-shrink-0 overflow-hidden transition-all duration-300 ease-in-out border-t border-white/5',
@@ -99,8 +99,42 @@ export function RightPanel() {
           >
             <Logs className="h-48" />
           </div>
-        </div>
+        </ViewLayer>
+
+        {/* Git Manager */}
+        <ViewLayer active={activeView === 'git'}>
+          <GitManager className="h-full" />
+        </ViewLayer>
+
+        {/* Vercel Manager */}
+        <ViewLayer active={activeView === 'vercel'}>
+          <VercelManager className="h-full" />
+        </ViewLayer>
       </div>
+    </div>
+  )
+}
+
+function ViewLayer({
+  active,
+  flexCol,
+  children,
+}: {
+  active: boolean
+  flexCol?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      className={cn(
+        'absolute inset-0 transition-all duration-300 ease-in-out',
+        flexCol && 'flex flex-col',
+        active
+          ? 'z-20 opacity-100 scale-100'
+          : 'z-10 opacity-[0.13] scale-[0.972] pointer-events-none blur-[1.5px]'
+      )}
+    >
+      {children}
     </div>
   )
 }
@@ -121,7 +155,7 @@ function ViewTab({
       type="button"
       onClick={onClick}
       className={cn(
-        'flex items-center gap-2 px-5 h-full text-sm font-semibold tracking-tight transition-all duration-200 border-b-2 relative',
+        'flex items-center gap-2 px-5 h-full text-sm font-semibold tracking-tight transition-all duration-200 border-b-2 relative whitespace-nowrap',
         active
           ? 'text-cyan-300 border-b-cyan-400 bg-[#0d1117]'
           : 'text-slate-500 border-b-transparent hover:text-slate-300 hover:bg-white/5'

@@ -5,6 +5,8 @@ import { Horizontal } from '@/components/layout/panels'
 import { Logs } from './logs'
 import { Preview } from './preview'
 import { RightPanel } from '@/components/layout/right-panel'
+import { GitManager } from '@/components/git-manager/git-manager'
+import { VercelManager } from '@/components/vercel-manager/vercel-manager'
 import { TabContent, TabItem } from '@/components/tabs'
 import { Welcome } from '@/components/modals/welcome'
 import { cookies } from 'next/headers'
@@ -25,7 +27,9 @@ export default async function Page() {
         <ul className="mobile-tab-bar md:hidden flex-shrink-0">
           <TabItem tabId="chat">Chat</TabItem>
           <TabItem tabId="preview">Preview</TabItem>
-          <TabItem tabId="file-explorer">Files</TabItem>
+          <TabItem tabId="file-explorer">Code</TabItem>
+          <TabItem tabId="git">Git</TabItem>
+          <TabItem tabId="vercel">Vercel</TabItem>
           <TabItem tabId="logs">Logs</TabItem>
         </ul>
 
@@ -39,6 +43,12 @@ export default async function Page() {
           </TabContent>
           <TabContent tabId="file-explorer" className="flex-1">
             <FileExplorer className="flex-1 overflow-hidden" />
+          </TabContent>
+          <TabContent tabId="git" className="flex-1">
+            <GitManager className="flex-1 overflow-hidden" />
+          </TabContent>
+          <TabContent tabId="vercel" className="flex-1">
+            <VercelManager className="flex-1 overflow-hidden" />
           </TabContent>
           <TabContent tabId="logs" className="flex-1">
             <Logs className="flex-1 overflow-hidden" />
