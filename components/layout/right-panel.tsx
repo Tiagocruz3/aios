@@ -6,19 +6,21 @@ import { Preview } from '@/app/preview'
 import { FileExplorer } from '@/app/file-explorer'
 import { Logs } from '@/app/logs'
 import { SupabaseManager } from '@/components/supabase-manager/supabase-manager'
+import { RepoLoader } from '@/components/git-manager/repo-loader'
 import { cn } from '@/lib/utils'
 import {
   MonitorIcon,
   Code2Icon,
   DatabaseIcon,
+  GitBranchIcon,
   TerminalIcon,
   ChevronDownIcon,
   ChevronUpIcon,
 } from 'lucide-react'
 
-type View = 'preview' | 'code' | 'supabase'
+type View = 'preview' | 'code' | 'supabase' | 'git'
 
-const VALID_VIEWS: View[] = ['preview', 'code', 'supabase']
+const VALID_VIEWS: View[] = ['preview', 'code', 'supabase', 'git']
 
 export function RightPanel() {
   const params = useSearchParams()
@@ -51,6 +53,12 @@ export function RightPanel() {
             onClick={() => setActiveView('supabase')}
             icon={<DatabaseIcon className="w-4 h-4" />}
             label="Supabase"
+          />
+          <ViewTab
+            active={activeView === 'git'}
+            onClick={() => setActiveView('git')}
+            icon={<GitBranchIcon className="w-4 h-4" />}
+            label="Git"
           />
         </div>
 
@@ -104,6 +112,11 @@ export function RightPanel() {
         {/* Supabase Manager */}
         <ViewLayer active={activeView === 'supabase'}>
           <SupabaseManager className="h-full" />
+        </ViewLayer>
+
+        {/* Git — load a repo into the coder sandbox */}
+        <ViewLayer active={activeView === 'git'}>
+          <RepoLoader className="h-full" />
         </ViewLayer>
       </div>
     </div>
