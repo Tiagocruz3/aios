@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   ZapIcon, GitBranchIcon, CloudIcon, DatabaseIcon,
   VideoIcon, BrainCircuitIcon, LockIcon,
-  WifiIcon, CpuIcon, CircleIcon, LayersIcon,
+  WifiIcon, CpuIcon, CircleIcon, LayersIcon, AtomIcon,
 } from 'lucide-react'
 
 /* ── clock ─────────────────────────────────────────────────────── */
@@ -140,6 +140,7 @@ type AppDef = {
 
 const apps: AppDef[] = [
   { id: 'helix',    name: 'Helix Coder',  desc: 'AI full-stack engineer',   icon: ZapIcon,        href: '/agent',            status: 'online' },
+  { id: 'hermes',   name: 'Hermes Chat',  desc: 'AI assistant',             icon: AtomIcon,       href: '/hermes',           status: 'online' },
   { id: 'git',      name: 'Git Manager',  desc: 'Repositories & commits',   icon: GitBranchIcon,  href: '/git',              status: 'online' },
   { id: 'vercel',   name: 'Vercel',       desc: 'Deployments & hosting',    icon: CloudIcon,      href: '/vercel',           status: 'online' },
   { id: 'supabase', name: 'Supabase',     desc: 'Backend & database',       icon: DatabaseIcon,   href: '/agent?app=supabase', status: 'online' },
@@ -199,7 +200,7 @@ const HudPanel = forwardRef<HTMLButtonElement, HudPanelProps>(function HudPanel(
         <span className="text-[13px] font-mono tracking-wide text-slate-300 group-hover:text-white transition-colors truncate">{app.name}</span>
       </div>
       <span className="text-[10px] font-mono text-slate-600 truncate">{app.desc}</span>
-      <MiniGraph data={GRAPHS[index]} align={side === 'right' ? 'right' : 'left'} />
+      <MiniGraph data={GRAPHS[index % GRAPHS.length]} align={side === 'right' ? 'right' : 'left'} />
     </div>
   )
 
@@ -467,8 +468,9 @@ export function Landing() {
     ? clock.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
     : ''
 
-  const leftApps  = apps.slice(0, 3)
-  const rightApps = apps.slice(3, 6)
+  const half      = Math.ceil(apps.length / 2)
+  const leftApps  = apps.slice(0, half)
+  const rightApps = apps.slice(half)
 
   /* ── boot overlay ──────────────────────────────────────────────── */
   if (booting) {
@@ -551,8 +553,8 @@ export function Landing() {
           {rightApps.map((app, i) => (
             <HudPanel
               key={app.id}
-              ref={(el) => { panelRefs.current[i + 3] = el }}
-              app={app} index={i + 3} side="right" onLaunch={launch}
+              ref={(el) => { panelRefs.current[i + half] = el }}
+              app={app} index={i + half} side="right" onLaunch={launch}
             />
           ))}
         </div>
