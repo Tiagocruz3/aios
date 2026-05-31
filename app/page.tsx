@@ -23,22 +23,10 @@ export default async function Page() {
 
         {/* Mobile tab bar */}
         <ul className="mobile-tab-bar md:hidden flex-shrink-0">
-          <TabItem tabId="chat">
-            <span className="text-base leading-none">💬</span>
-            Chat
-          </TabItem>
-          <TabItem tabId="preview">
-            <span className="text-base leading-none">🖥️</span>
-            Preview
-          </TabItem>
-          <TabItem tabId="file-explorer">
-            <span className="text-base leading-none">📁</span>
-            Files
-          </TabItem>
-          <TabItem tabId="logs">
-            <span className="text-base leading-none">⌨️</span>
-            Logs
-          </TabItem>
+          <TabItem tabId="chat">Chat</TabItem>
+          <TabItem tabId="preview">Preview</TabItem>
+          <TabItem tabId="file-explorer">Files</TabItem>
+          <TabItem tabId="logs">Logs</TabItem>
         </ul>
 
         {/* Mobile layout */}

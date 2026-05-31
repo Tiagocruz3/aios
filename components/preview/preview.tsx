@@ -2,7 +2,6 @@
 
 import { BarLoader } from 'react-spinners'
 import {
-  CompassIcon,
   RefreshCwIcon,
   Maximize2Icon,
   Minimize2Icon,
@@ -56,10 +55,6 @@ export function Preview({ className, disabled, url }: Props) {
     }
   }
 
-  const openInNewWindow = () => {
-    if (currentUrl) window.open(currentUrl, '_blank', 'noopener,noreferrer')
-  }
-
   const toggleFullscreen = () => {
     const el = containerRef.current
     if (!el) return
@@ -82,18 +77,17 @@ export function Preview({ className, disabled, url }: Props) {
       <PanelHeader>
         {/* Left controls */}
         <div className="absolute flex items-center gap-0.5 left-2.5">
-          <IconBtn onClick={openInNewWindow} title="Open in new window">
+          <IconBtn
+            href={currentUrl}
+            disabled={!currentUrl}
+            title="Open preview in new tab"
+          >
             <ExternalLinkIcon className="w-3.5 h-3.5" />
           </IconBtn>
           <IconBtn
-            href={currentUrl}
-            title="Open in browser"
-          >
-            <CompassIcon className="w-3.5 h-3.5" />
-          </IconBtn>
-          <IconBtn
             onClick={refreshIframe}
-            title="Refresh"
+            disabled={!currentUrl}
+            title="Refresh preview"
             className={isLoading ? 'animate-spin' : ''}
           >
             <RefreshCwIcon className="w-3.5 h-3.5" />
@@ -188,19 +182,28 @@ function IconBtn({
   children,
   title,
   className,
+  disabled,
 }: {
   onClick?: () => void
   href?: string
   children: React.ReactNode
   title?: string
   className?: string
+  disabled?: boolean
 }) {
   const cls = cn(
-    'flex items-center justify-center w-6 h-6 rounded text-cyan-600 hover:text-cyan-300 hover:bg-cyan-500/10 transition-all cursor-pointer',
+    'flex items-center justify-center w-6 h-6 rounded transition-all',
+    disabled
+      ? 'text-slate-700 cursor-not-allowed opacity-50'
+      : 'text-cyan-600 hover:text-cyan-300 hover:bg-cyan-500/10 cursor-pointer',
     className
   )
-  if (href) {
+  if (href && !disabled) {
     return <a href={href} target="_blank" rel="noopener noreferrer" className={cls} title={title}>{children}</a>
   }
-  return <button type="button" onClick={onClick} className={cls} title={title}>{children}</button>
+  return (
+    <button type="button" onClick={onClick} className={cls} title={title} disabled={disabled}>
+      {children}
+    </button>
+  )
 }
