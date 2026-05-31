@@ -51,9 +51,10 @@ export function GitManager({ className }: { className?: string }) {
   const [token, setToken] = useState<string | null>(null)
   const [user, setUser] = useState<GhUser | null>(null)
 
-  // Restore a saved PAT on mount.
+  // Restore a token from env (preferred) or a saved PAT on mount.
   useEffect(() => {
-    const saved = localStorage.getItem(PAT_KEY)
+    const saved =
+      process.env.NEXT_PUBLIC_GITHUB_TOKEN || localStorage.getItem(PAT_KEY)
     if (saved) setToken(saved)
   }, [])
 

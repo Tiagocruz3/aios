@@ -30,7 +30,8 @@ export function VercelManager({ className }: { className?: string }) {
   const [user, setUser] = useState<VercelUser | null>(null)
 
   useEffect(() => {
-    const saved = localStorage.getItem(TOKEN_KEY)
+    const saved =
+      process.env.NEXT_PUBLIC_VERCEL_TOKEN || localStorage.getItem(TOKEN_KEY)
     if (saved) setToken(saved)
   }, [])
 
