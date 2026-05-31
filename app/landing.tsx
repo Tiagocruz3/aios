@@ -252,7 +252,8 @@ function WireOverlay({
         if (!el) return null
         const pr = el.getBoundingClientRect()
         if (pr.width === 0) return null               // hidden
-        const isLeft = i < 3
+        // Derive side from actual DOM position, not a hardcoded index.
+        const isLeft = (pr.left + pr.width / 2) < (window.innerWidth / 2)
         const px = isLeft ? pr.right  : pr.left
         const py = pr.top + pr.height / 2
 
