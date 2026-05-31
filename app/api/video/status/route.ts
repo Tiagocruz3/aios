@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
 
-/* Poll a fal queue job. The client passes the model + requestId; we proxy
-   the status (and the final result once completed) so FAL_KEY stays secret. */
+/* Poll a fal queue job. The client posts the model + requestId; we proxy
+   the status (and the final result once completed) so FAL_KEY stays secret.
+   POST is used (not GET) so the slash-heavy model id never has to be
+   URL-encoded into the path/query, which some platforms reject with a 405. */
 
 const FAL_QUEUE = 'https://queue.fal.run'
 
-export async function GET(req: Request) {
+export async function POST(req: Request) {
   const key = process.env.FAL_KEY
   if (!key) {
     return NextResponse.json(
@@ -14,9 +16,14 @@ export async function GET(req: Request) {
     )
   }
 
-  const { searchParams } = new URL(req.url)
-  const model = searchParams.get('model')
-  const requestId = searchParams.get('requestId')
+  let body: { model?: string; requestId?: string }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const { model, requestId } = body
   if (!model || !requestId) {
     return NextResponse.json(
       { error: 'model and requestId are required' },

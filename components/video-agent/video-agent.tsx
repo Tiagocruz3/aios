@@ -112,9 +112,11 @@ export function VideoAgent({ className }: { className?: string }) {
       // poll every 3s
       pollRef.current = setInterval(async () => {
         try {
-          const sres = await fetch(
-            `/api/video/status?model=${encodeURIComponent(resolvedModel)}&requestId=${requestId}`
-          )
+          const sres = await fetch('/api/video/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: resolvedModel, requestId }),
+          })
           const sdata = await sres.json()
           if (!sres.ok) throw new Error(sdata.error || 'Status check failed')
 
