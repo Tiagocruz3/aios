@@ -6,18 +6,20 @@ import { FileExplorer } from '@/app/file-explorer'
 import { Logs } from '@/app/logs'
 import { GitManager } from '@/components/git-manager/git-manager'
 import { VercelManager } from '@/components/vercel-manager/vercel-manager'
+import { SupabaseManager } from '@/components/supabase-manager/supabase-manager'
 import { cn } from '@/lib/utils'
 import {
   MonitorIcon,
   Code2Icon,
   GitBranchIcon,
   TriangleIcon,
+  DatabaseIcon,
   TerminalIcon,
   ChevronDownIcon,
   ChevronUpIcon,
 } from 'lucide-react'
 
-type View = 'preview' | 'code' | 'git' | 'vercel'
+type View = 'preview' | 'code' | 'git' | 'vercel' | 'supabase'
 
 export function RightPanel() {
   const [activeView, setActiveView] = useState<View>('preview')
@@ -51,6 +53,12 @@ export function RightPanel() {
             onClick={() => setActiveView('vercel')}
             icon={<TriangleIcon className="w-3.5 h-3.5" />}
             label="Vercel"
+          />
+          <ViewTab
+            active={activeView === 'supabase'}
+            onClick={() => setActiveView('supabase')}
+            icon={<DatabaseIcon className="w-4 h-4" />}
+            label="Supabase"
           />
         </div>
 
@@ -109,6 +117,11 @@ export function RightPanel() {
         {/* Vercel Manager */}
         <ViewLayer active={activeView === 'vercel'}>
           <VercelManager className="h-full" />
+        </ViewLayer>
+
+        {/* Supabase Manager */}
+        <ViewLayer active={activeView === 'supabase'}>
+          <SupabaseManager className="h-full" />
         </ViewLayer>
       </div>
     </div>
