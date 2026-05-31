@@ -2,9 +2,11 @@
 
 import { useEffect } from 'react'
 import Editor, { useMonaco } from '@monaco-editor/react'
-import type * as MonacoTypes from 'monaco-editor'
+import type { Monaco } from '@monaco-editor/react'
 
-const HOLOGRAPHIC_THEME: MonacoTypes.editor.IStandaloneThemeData = {
+type IStandaloneThemeData = Parameters<Monaco['editor']['defineTheme']>[1]
+
+const HOLOGRAPHIC_THEME: IStandaloneThemeData = {
   base: 'vs-dark',
   inherit: true,
   rules: [
