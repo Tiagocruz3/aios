@@ -73,7 +73,7 @@ export function HyperDrive({ className }: { className?: string }) {
   }
 
   return (
-    <div className={cn('flex flex-col h-full w-full min-h-0 bg-[#0a0f16]', className)}>
+    <div className={cn('flex flex-col h-full w-full min-h-0 holo-surface', className)}>
       {/* tab bar */}
       <div className="flex items-center gap-1 px-5 border-b border-white/8 flex-shrink-0 h-12">
         {TABS.map(({ id, label, icon: Icon }) => (

@@ -57,7 +57,7 @@ export function HermesChat({ className }: { className?: string }) {
   )
 
   return (
-    <div className={cn('flex flex-col h-full w-full min-h-0 bg-[#0a0f16]', className)}>
+    <div className={cn('flex flex-col h-full w-full min-h-0 holo-surface', className)}>
       {/* top bar */}
       <div className="flex items-center gap-2 px-5 h-11 flex-shrink-0 border-b border-white/8">
         <AtomIcon className="w-4 h-4 text-cyan-400" strokeWidth={1.5} />

@@ -1007,3 +1007,92 @@ body {
   0%   { width: 0%; }
   100% { width: 100%; }
 }
+
+/* ============================================================
+   UNIVERSAL HOLOGRAPHIC THEME — locked tokens, surfaces, FX
+   ============================================================ */
+
+:root {
+  --holo-cyan: #00f3ff;
+  --holo-cyan-rgb: 0, 243, 255;
+}
+
+/* Translucent glass surface — use on full-page/panel roots so the
+   holographic background + particles always show through. Replaces
+   opaque page backgrounds that were hiding the holo layer. */
+.holo-surface {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(0, 243, 255, 0.04) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(10, 21, 37, 0.82) 0%, rgba(5, 5, 10, 0.88) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* Global scanline overlay — 2px cyan lines at low opacity, sits above
+   the backdrop but below content. */
+.holo-scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: -7;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(0, 243, 255, 0.02) 0px,
+    rgba(0, 243, 255, 0.02) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: screen;
+}
+
+/* Gradient-border button (purple → cyan) */
+.holo-gradient-btn {
+  position: relative;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(rgba(5, 10, 20, 0.85), rgba(5, 10, 20, 0.85)) padding-box,
+    linear-gradient(135deg, rgba(168, 85, 247, 0.7) 0%, rgba(0, 243, 255, 0.7) 100%) border-box;
+  transition: box-shadow 0.25s ease, transform 0.1s ease;
+}
+.holo-gradient-btn:hover {
+  box-shadow: 0 0 18px -4px rgba(0, 243, 255, 0.5);
+}
+
+/* ── keyframes ─────────────────────────────────────────────── */
+@keyframes pulse-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(0, 243, 255, 0.5)); }
+  50%      { filter: drop-shadow(0 0 14px rgba(0, 243, 255, 0.9)); }
+}
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+@keyframes spin-slow-reverse {
+  to { transform: rotate(-360deg); }
+}
+@keyframes flicker {
+  0%, 100%   { opacity: 1; }
+  41%, 43%   { opacity: 0.7; }
+  42%        { opacity: 0.35; }
+  92%, 94%   { opacity: 0.8; }
+  93%        { opacity: 0.4; }
+}
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+@keyframes radar-sweep {
+  to { transform: rotate(360deg); }
+}
+
+/* ── applied utility classes ───────────────────────────────── */
+.animate-pulse-glow        { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-spin-slow         { animation: spin-slow 20s linear infinite; transform-box: fill-box; transform-origin: center; }
+.animate-spin-slow-reverse { animation: spin-slow-reverse 25s linear infinite; transform-box: fill-box; transform-origin: center; }
+.animate-flicker           { animation: flicker 3s linear infinite; }
+.animate-scanline          { animation: scanline 4s linear infinite; }
+.animate-float             { animation: float 4s ease-in-out infinite; }
+.animate-radar             { animation: radar-sweep 3s linear infinite; transform-box: fill-box; transform-origin: center; }

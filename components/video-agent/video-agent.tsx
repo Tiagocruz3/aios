@@ -168,7 +168,7 @@ export function VideoAgent({ className }: { className?: string }) {
   }[status as 'submitting' | 'IN_QUEUE' | 'IN_PROGRESS']
 
   return (
-    <div className={cn('flex h-full w-full min-h-0 bg-[#0a0f16]', className)}>
+    <div className={cn('flex h-full w-full min-h-0 holo-surface', className)}>
       {/* ── Left: composer ─────────────────────────────────────────── */}
       <div className="flex flex-col w-full max-w-[420px] flex-shrink-0 border-r border-white/8 min-h-0">
         <div className="flex items-center gap-2 px-4 h-11 flex-shrink-0 border-b border-white/8">

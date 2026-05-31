@@ -124,7 +124,7 @@ export function RepoLoader({ className }: { className?: string }) {
   }
 
   return (
-    <div className={cn('flex flex-col h-full min-h-0 bg-[#0a0f16]', className)}>
+    <div className={cn('flex flex-col h-full min-h-0 holo-surface', className)}>
       {/* header / search */}
       <div className="flex items-center gap-2 px-3 h-11 flex-shrink-0 border-b border-white/8">
         <GitBranchIcon className="w-4 h-4 text-cyan-400 flex-shrink-0" strokeWidth={1.5} />

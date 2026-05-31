@@ -10,18 +10,13 @@ interface Particle {
   radius: number
   baseOpacity: number
   phase: number
-  colorIdx: number
 }
 
-const PALETTE = [
-  [0, 200, 255],   // cyan
-  [168, 85, 247],  // purple
-  [59, 130, 246],  // blue
-  [0, 220, 130],   // green
-]
+/* Locked to the holographic cyan so the palette never drifts. */
+const CYAN: [number, number, number] = [0, 243, 255] // #00f3ff
 
-const COUNT = 70
-const MAX_DIST = 130
+const COUNT = 50
+const MAX_DIST = 150
 const SPEED = 0.28
 
 export function ParticleBackground() {
@@ -48,9 +43,8 @@ export function ParticleBackground() {
       vx: (Math.random() - 0.5) * SPEED,
       vy: (Math.random() - 0.5) * SPEED,
       radius: Math.random() * 1.4 + 0.4,
-      baseOpacity: Math.random() * 0.45 + 0.1,
+      baseOpacity: Math.random() * 0.3 + 0.1, // 10–40%
       phase: Math.random() * Math.PI * 2,
-      colorIdx: Math.floor(Math.random() * PALETTE.length),
     })
 
     const tick = () => {
@@ -66,7 +60,7 @@ export function ParticleBackground() {
         if (p.y < 0) p.y = H
         if (p.y > H) p.y = 0
 
-        const [r, g, b] = PALETTE[p.colorIdx]
+        const [r, g, b] = CYAN
         const alpha = (Math.sin(p.phase) * 0.3 + 0.7) * p.baseOpacity
         ctx.beginPath()
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
@@ -80,8 +74,8 @@ export function ParticleBackground() {
           const dx = a.x - b.x, dy = a.y - b.y
           const d = Math.sqrt(dx * dx + dy * dy)
           if (d < MAX_DIST) {
-            const alpha = (1 - d / MAX_DIST) * 0.12
-            const [r, g, bl] = PALETTE[a.colorIdx]
+            const alpha = (1 - d / MAX_DIST) * 0.15
+            const [r, g, bl] = CYAN
             ctx.beginPath()
             ctx.strokeStyle = `rgba(${r},${g},${bl},${alpha})`
             ctx.lineWidth = 0.6

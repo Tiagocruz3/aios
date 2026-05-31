@@ -8,6 +8,7 @@ export function HolographicBackground() {
       <div className="holo-blob holo-blob-3" />
       <div className="holo-grid" />
       <div className="holo-vignette" />
+      <div className="holo-scanlines" />
     </div>
   )
 }

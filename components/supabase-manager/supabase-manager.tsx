@@ -82,7 +82,7 @@ export function SupabaseManager({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'flex flex-col h-full w-full overflow-hidden rounded-lg border border-cyan-500/15 bg-[#0a0f16]',
+        'flex flex-col h-full w-full overflow-hidden rounded-lg border border-cyan-500/15 holo-surface',
         className
       )}
     >

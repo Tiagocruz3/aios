@@ -124,7 +124,7 @@ export function GitManager({ className }: { className?: string }) {
   }, [token, user, handleDisconnect])
 
   return (
-    <div className={cn('flex flex-col h-full w-full overflow-hidden bg-[#0a0f16]', className)}>
+    <div className={cn('flex flex-col h-full w-full overflow-hidden holo-surface', className)}>
       <div className="flex items-center gap-2 px-3 h-9 flex-shrink-0 border-b border-white/8 bg-[#080c12]">
         <GitBranchIcon className="w-4 h-4 text-cyan-400" />
         <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-200">
