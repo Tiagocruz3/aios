@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, forwardRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ZapIcon, GitBranchIcon, CloudIcon, DatabaseIcon,
-  TerminalIcon, BrainCircuitIcon, LockIcon,
+  VideoIcon, BrainCircuitIcon, LockIcon,
   WifiIcon, CpuIcon, CircleIcon, PlusIcon,
 } from 'lucide-react'
 
@@ -143,7 +143,7 @@ const apps: AppDef[] = [
   { id: 'git',      name: 'Git Manager',  desc: 'Repositories & commits',   icon: GitBranchIcon,  href: '/git',              status: 'online' },
   { id: 'vercel',   name: 'Vercel',       desc: 'Deployments & hosting',    icon: CloudIcon,      href: '/vercel',           status: 'online' },
   { id: 'supabase', name: 'Supabase',     desc: 'Backend & database',       icon: DatabaseIcon,   href: '/agent?app=supabase', status: 'online' },
-  { id: 'terminal', name: 'Terminal',     desc: 'System shell',             icon: TerminalIcon,   status: 'soon' },
+  { id: 'video',    name: 'Video Agent',  desc: 'AI YouTube Shorts',        icon: VideoIcon,      href: '/video',            status: 'online' },
   { id: 'new',      name: 'New App',      desc: 'Build with Helix',         icon: PlusIcon,       href: '/agent', status: 'online' },
 ]
 

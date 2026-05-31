@@ -900,6 +900,25 @@ body {
   to { opacity: 1; }
 }
 
+/* ── video render shimmer (Video Agent) ─────────────────────────── */
+.video-render-shimmer {
+  background: linear-gradient(
+    135deg,
+    rgba(0,200,255,0.03) 0%,
+    rgba(0,200,255,0.12) 25%,
+    rgba(168,85,247,0.10) 50%,
+    rgba(0,200,255,0.12) 75%,
+    rgba(0,200,255,0.03) 100%
+  );
+  background-size: 300% 300%;
+  animation: video-shimmer 2.4s ease-in-out infinite;
+}
+@keyframes video-shimmer {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 /* ── repo folder card (Git Manager library) ─────────────────────── */
 .repo-folder {
   border: 1px solid rgba(255,255,255,0.07);
