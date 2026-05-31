@@ -1,334 +1,376 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
-  DnaIcon,
   ZapIcon,
   GitBranchIcon,
   CloudIcon,
   DatabaseIcon,
-  ArrowRightIcon,
-  ActivityIcon,
+  TerminalIcon,
+  BrainCircuitIcon,
+  LockIcon,
+  WifiIcon,
   CpuIcon,
-  GlobeIcon,
-  ShieldIcon,
+  CircleIcon,
+  PlusIcon,
 } from 'lucide-react'
 
-function useTypewriter(lines: string[], speed = 45, pause = 1800) {
-  const [displayText, setDisplayText] = useState('')
-  const [lineIdx, setLineIdx] = useState(0)
-  const [charIdx, setCharIdx] = useState(0)
-  const [deleting, setDeleting] = useState(false)
-
+/* ── live clock ─────────────────────────────────────────────────── */
+function useClock() {
+  const [now, setNow] = useState<Date | null>(null)
   useEffect(() => {
-    const current = lines[lineIdx]
-    const timeout = setTimeout(
-      () => {
-        if (!deleting) {
-          setDisplayText(current.slice(0, charIdx + 1))
-          if (charIdx + 1 === current.length) {
-            setTimeout(() => setDeleting(true), pause)
-          } else {
-            setCharIdx((c) => c + 1)
-          }
-        } else {
-          setDisplayText(current.slice(0, charIdx - 1))
-          if (charIdx - 1 === 0) {
-            setDeleting(false)
-            setLineIdx((i) => (i + 1) % lines.length)
-            setCharIdx(0)
-          } else {
-            setCharIdx((c) => c - 1)
-          }
-        }
-      },
-      deleting ? speed / 2 : speed
-    )
-    return () => clearTimeout(timeout)
-  }, [charIdx, deleting, lineIdx, lines, speed, pause])
-
-  return displayText
+    setNow(new Date())
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  return now
 }
 
-const modules = [
-  {
-    icon: ZapIcon,
-    label: 'AI Code Agent',
-    desc: 'Generate full-stack apps from natural language prompts.',
-    color: 'cyan',
-    glow: 'shadow-[0_0_20px_rgba(0,200,255,0.25)]',
-    border: 'border-cyan-500/30',
-    bg: 'bg-cyan-500/5',
-    iconBg: 'bg-cyan-500/15',
-    iconColor: 'text-cyan-300',
-    tag: 'ACTIVE',
-    tagColor: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
-  },
-  {
-    icon: GitBranchIcon,
-    label: 'Git Manager',
-    desc: 'Browse, edit, and commit code across all your repositories.',
-    color: 'purple',
-    glow: 'shadow-[0_0_20px_rgba(168,85,247,0.2)]',
-    border: 'border-purple-500/30',
-    bg: 'bg-purple-500/5',
-    iconBg: 'bg-purple-500/15',
-    iconColor: 'text-purple-300',
-    tag: 'ONLINE',
-    tagColor: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
-  },
-  {
-    icon: CloudIcon,
-    label: 'Vercel Manager',
-    desc: 'Deploy and manage projects directly from the command centre.',
-    color: 'slate',
-    glow: 'shadow-[0_0_20px_rgba(148,163,184,0.15)]',
-    border: 'border-slate-500/30',
-    bg: 'bg-slate-500/5',
-    iconBg: 'bg-slate-500/15',
-    iconColor: 'text-slate-300',
-    tag: 'LINKED',
-    tagColor: 'text-slate-400 bg-slate-500/10 border-slate-500/30',
-  },
-  {
-    icon: DatabaseIcon,
-    label: 'Supabase',
-    desc: 'Spin up databases, run SQL, and manage API keys in realtime.',
-    color: 'emerald',
-    glow: 'shadow-[0_0_20px_rgba(52,211,153,0.2)]',
-    border: 'border-emerald-500/30',
-    bg: 'bg-emerald-500/5',
-    iconBg: 'bg-emerald-500/15',
-    iconColor: 'text-emerald-300',
-    tag: 'READY',
-    tagColor: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
-  },
-]
+/* ── animated system meter (mock telemetry) ─────────────────────── */
+function useMeter(base: number, swing: number, speed = 2200) {
+  const [v, setV] = useState(base)
+  useEffect(() => {
+    const t = setInterval(() => {
+      setV(Math.max(2, Math.min(99, base + (Math.random() - 0.5) * swing)))
+    }, speed)
+    return () => clearInterval(t)
+  }, [base, swing, speed])
+  return Math.round(v)
+}
 
-const stats = [
-  { label: 'Neural Models', value: '12', icon: CpuIcon },
-  { label: 'Integrations', value: '4', icon: GlobeIcon },
-  { label: 'Uptime', value: '99.9%', icon: ActivityIcon },
-  { label: 'Encrypted', value: 'E2E', icon: ShieldIcon },
-]
-
-function HudRing({
-  size,
-  duration,
-  reverse,
-  opacity,
-}: {
-  size: number
-  duration: number
-  reverse?: boolean
-  opacity?: number
-}) {
+/* ── the Jarvis orb ─────────────────────────────────────────────── */
+function JarvisOrb({ listening }: { listening: boolean }) {
   return (
-    <div
-      className="absolute rounded-full border border-cyan-400/20"
-      style={{
-        width: size,
-        height: size,
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        animation: `spin ${duration}s linear infinite ${reverse ? 'reverse' : ''}`,
-        opacity: opacity ?? 0.4,
-      }}
-    >
+    <div className="relative flex items-center justify-center w-[320px] h-[320px] sm:w-[400px] sm:h-[400px]">
+      {/* outer rotating rings */}
       <div
-        className="absolute w-2 h-2 rounded-full bg-cyan-400"
-        style={{ top: -4, left: '50%', transform: 'translateX(-50%)', filter: 'blur(1px)' }}
+        className="absolute inset-0 rounded-full border border-cyan-400/20"
+        style={{ animation: 'spin 22s linear infinite' }}
+      >
+        <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-cyan-400 blur-[1px]" />
+        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-300/70" />
+      </div>
+      <div
+        className="absolute inset-[8%] rounded-full border border-purple-400/15 border-dashed"
+        style={{ animation: 'spin 30s linear infinite reverse' }}
       />
+      <div
+        className="absolute inset-[16%] rounded-full border border-cyan-400/25"
+        style={{ animation: 'spin 16s linear infinite' }}
+      >
+        <span className="absolute top-1/2 -right-1 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-cyan-300 blur-[1px]" />
+      </div>
+
+      {/* tick marks ring */}
+      <div
+        className="absolute inset-[24%] rounded-full"
+        style={{
+          animation: 'spin 40s linear infinite reverse',
+          background:
+            'repeating-conic-gradient(from 0deg, rgba(0,200,255,0.25) 0deg 1deg, transparent 1deg 9deg)',
+          WebkitMask: 'radial-gradient(circle, transparent 60%, black 61%, black 100%)',
+          mask: 'radial-gradient(circle, transparent 60%, black 61%, black 100%)',
+        }}
+      />
+
+      {/* glowing core */}
+      <div
+        className="relative flex items-center justify-center rounded-full"
+        style={{
+          width: '46%',
+          height: '46%',
+          background:
+            'radial-gradient(circle at 50% 40%, rgba(120,230,255,0.9), rgba(0,170,255,0.55) 40%, rgba(40,0,120,0.25) 75%, transparent 100%)',
+          boxShadow: listening
+            ? '0 0 80px rgba(0,210,255,0.65), inset 0 0 50px rgba(120,230,255,0.5)'
+            : '0 0 50px rgba(0,200,255,0.4), inset 0 0 40px rgba(80,200,255,0.35)',
+          animation: 'orb-breathe 4s ease-in-out infinite',
+        }}
+      >
+        {/* inner swirling plasma */}
+        <div
+          className="absolute inset-2 rounded-full opacity-70"
+          style={{
+            background:
+              'conic-gradient(from 0deg, transparent, rgba(140,240,255,0.5), transparent, rgba(160,120,255,0.4), transparent)',
+            animation: 'spin 6s linear infinite',
+            filter: 'blur(6px)',
+          }}
+        />
+        <BrainCircuitIcon className="relative w-10 h-10 sm:w-12 sm:h-12 text-white/90 drop-shadow-[0_0_8px_rgba(0,220,255,0.9)]" />
+      </div>
+
+      {/* equaliser bars under core when "listening" */}
+      <div className="absolute bottom-[20%] flex items-end gap-1 h-6">
+        {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+          <span
+            key={i}
+            className="w-1 rounded-full bg-cyan-400/80"
+            style={{
+              height: '100%',
+              animation: `eq-bar 1.1s ease-in-out ${i * 0.12}s infinite`,
+              transformOrigin: 'bottom',
+            }}
+          />
+        ))}
+      </div>
     </div>
   )
 }
 
-export function Landing() {
-  const typeText = useTypewriter([
-    'Build full-stack applications.',
-    'Deploy in seconds.',
-    'Manage your entire stack.',
-    'From idea to production.',
-  ])
+/* ── app registry ───────────────────────────────────────────────── */
+type AppDef = {
+  id: string
+  name: string
+  desc: string
+  icon: typeof ZapIcon
+  href?: string
+  status: 'online' | 'soon' | 'locked'
+  accent: string
+}
 
-  const [mounted, setMounted] = useState(false)
+const apps: AppDef[] = [
+  {
+    id: 'helix',
+    name: 'Helix Coder',
+    desc: 'AI full-stack engineer',
+    icon: ZapIcon,
+    href: '/agent',
+    status: 'online',
+    accent: 'cyan',
+  },
+  {
+    id: 'git',
+    name: 'Git Manager',
+    desc: 'Repos & commits',
+    icon: GitBranchIcon,
+    href: '/agent?app=git',
+    status: 'online',
+    accent: 'purple',
+  },
+  {
+    id: 'vercel',
+    name: 'Vercel',
+    desc: 'Deployments',
+    icon: CloudIcon,
+    href: '/agent?app=vercel',
+    status: 'online',
+    accent: 'slate',
+  },
+  {
+    id: 'supabase',
+    name: 'Supabase',
+    desc: 'Backend & DB',
+    icon: DatabaseIcon,
+    href: '/agent?app=supabase',
+    status: 'online',
+    accent: 'emerald',
+  },
+  {
+    id: 'terminal',
+    name: 'Terminal',
+    desc: 'System shell',
+    icon: TerminalIcon,
+    status: 'soon',
+    accent: 'slate',
+  },
+  {
+    id: 'new',
+    name: 'New App',
+    desc: 'Build with Helix',
+    icon: PlusIcon,
+    href: '/agent',
+    status: 'online',
+    accent: 'cyan',
+  },
+]
+
+const accentMap: Record<string, { ring: string; icon: string; bg: string; glow: string }> = {
+  cyan: {
+    ring: 'border-cyan-500/40',
+    icon: 'text-cyan-300',
+    bg: 'bg-cyan-500/10',
+    glow: 'group-hover:shadow-[0_0_24px_rgba(0,200,255,0.35)]',
+  },
+  purple: {
+    ring: 'border-purple-500/40',
+    icon: 'text-purple-300',
+    bg: 'bg-purple-500/10',
+    glow: 'group-hover:shadow-[0_0_24px_rgba(168,85,247,0.3)]',
+  },
+  emerald: {
+    ring: 'border-emerald-500/40',
+    icon: 'text-emerald-300',
+    bg: 'bg-emerald-500/10',
+    glow: 'group-hover:shadow-[0_0_24px_rgba(52,211,153,0.3)]',
+  },
+  slate: {
+    ring: 'border-slate-500/40',
+    icon: 'text-slate-300',
+    bg: 'bg-slate-500/10',
+    glow: 'group-hover:shadow-[0_0_24px_rgba(148,163,184,0.25)]',
+  },
+}
+
+function AppIcon({ app, onLaunch }: { app: AppDef; onLaunch: (a: AppDef) => void }) {
+  const a = accentMap[app.accent]
+  const Icon = app.icon
+  const disabled = app.status === 'soon' || app.status === 'locked'
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onLaunch(app)}
+      className={`group relative flex flex-col items-center gap-2 w-[88px] sm:w-[104px] ${
+        disabled ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'
+      }`}
+    >
+      <span
+        className={`relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border ${a.ring} ${a.bg} backdrop-blur-md transition-all duration-200 ${
+          disabled ? '' : `group-hover:scale-110 ${a.glow}`
+        }`}
+      >
+        <Icon className={`w-6 h-6 sm:w-7 sm:h-7 ${a.icon}`} />
+        {app.status === 'online' && (
+          <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-black/60 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+        )}
+        {app.status === 'soon' && (
+          <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-[8px] font-mono px-1 rounded bg-black/70 border border-slate-600/50 text-slate-400">
+            SOON
+          </span>
+        )}
+        {app.status === 'locked' && (
+          <LockIcon className="absolute -bottom-1 -right-1 w-3.5 h-3.5 text-slate-500 bg-black/70 rounded-full p-0.5" />
+        )}
+      </span>
+      <span className="text-[11px] font-mono text-slate-300 group-hover:text-cyan-200 transition-colors text-center leading-tight">
+        {app.name}
+      </span>
+    </button>
+  )
+}
+
+export function Landing() {
+  const router = useRouter()
+  const clock = useClock()
+  const cpu = useMeter(34, 30)
+  const mem = useMeter(58, 18)
+  const net = useMeter(12, 24)
+  const [booting, setBooting] = useState(true)
+  const [bootLine, setBootLine] = useState(0)
+
+  const bootLines = [
+    'INITIALISING HELIX KERNEL...',
+    'LOADING NEURAL CORE...',
+    'MOUNTING AI MODULES...',
+    'ESTABLISHING SECURE LINK...',
+    'COMMAND CENTRE ONLINE.',
+  ]
+
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    if (bootLine < bootLines.length) {
+      const t = setTimeout(() => setBootLine((l) => l + 1), 360)
+      return () => clearTimeout(t)
+    }
+    const t = setTimeout(() => setBooting(false), 500)
+    return () => clearTimeout(t)
+  }, [bootLine, bootLines.length])
+
+  const launch = (app: AppDef) => {
+    if (app.href) router.push(app.href)
+  }
+
+  const time = clock
+    ? clock.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : '--:--:--'
+  const date = clock
+    ? clock.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
+    : ''
+
+  /* ── boot overlay ─────────────────────────────────────────────── */
+  if (booting) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-black/40 backdrop-blur-sm font-mono">
+        <BrainCircuitIcon className="w-10 h-10 text-cyan-300 animate-pulse mb-2 drop-shadow-[0_0_12px_rgba(0,220,255,0.8)]" />
+        <div className="flex flex-col gap-1 text-xs text-cyan-400/80 w-[280px]">
+          {bootLines.slice(0, bootLine).map((l, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="text-emerald-400">✓</span>
+              {l}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="relative min-h-screen flex flex-col overflow-hidden">
-      {/* ── Animated HUD rings centred behind hero ─────────────────── */}
-      <div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
-        aria-hidden="true"
-        style={{ zIndex: 0 }}
-      >
-        {mounted && (
-          <>
-            <HudRing size={340} duration={18} opacity={0.18} />
-            <HudRing size={500} duration={28} reverse opacity={0.12} />
-            <HudRing size={680} duration={40} opacity={0.08} />
-            <HudRing size={860} duration={55} reverse opacity={0.05} />
-            {/* Radial glow */}
-            <div
-              className="absolute rounded-full"
-              style={{
-                width: 600,
-                height: 600,
-                background:
-                  'radial-gradient(circle, rgba(0,200,255,0.07) 0%, transparent 70%)',
-              }}
-            />
-          </>
-        )}
-      </div>
-
-      {/* ── Scan line ────────────────────────────────────────────────── */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true" style={{ zIndex: 0 }}>
-        <div className="landing-scan-line" />
-      </div>
-
-      {/* ── Nav ──────────────────────────────────────────────────────── */}
-      <nav className="relative z-10 flex items-center justify-between px-6 py-4 md:px-10">
-        <div className="flex items-center gap-2.5">
-          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 shadow-[0_0_14px_rgba(0,200,255,0.25)]">
-            <DnaIcon className="w-4 h-4 text-cyan-300" />
-          </span>
-          <span className="text-base font-mono font-bold tracking-[0.28em] holo-title">
-            HELIX
-          </span>
-          <span className="holo-pulse-dot" />
-        </div>
-
+    <div className="relative flex flex-col h-screen max-h-screen overflow-hidden select-none">
+      {/* ── TOP STATUS BAR (menu bar) ──────────────────────────────── */}
+      <header className="relative z-20 flex items-center justify-between px-4 py-2 text-xs font-mono border-b border-cyan-500/15 bg-black/30 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <a
-            href="https://github.com/tiagocruz3/aios"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono text-slate-400 border border-cyan-500/15 bg-black/30 hover:text-cyan-200 hover:border-cyan-500/30 hover:bg-cyan-500/10 transition-all"
-          >
-            GitHub
-          </a>
-          <Link
-            href="/agent"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-semibold text-cyan-300 border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 hover:border-cyan-500/60 transition-all shadow-[0_0_12px_rgba(0,200,255,0.15)]"
-          >
-            Launch Agent
-            <ArrowRightIcon className="w-3 h-3" />
-          </Link>
-        </div>
-      </nav>
-
-      {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="relative z-10 flex flex-col items-center justify-center flex-1 px-6 pt-8 pb-16 text-center">
-        {/* System badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 mb-8 rounded-full border border-cyan-500/25 bg-cyan-500/5 backdrop-blur-sm text-xs font-mono text-cyan-400/80">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-          HELIX COMMAND CENTRE — SYSTEM ONLINE
+          <span className="flex items-center gap-1.5 font-bold tracking-[0.2em] holo-title">
+            <BrainCircuitIcon className="w-4 h-4 text-cyan-300" />
+            HELIX&nbsp;OS
+          </span>
+          <span className="hidden sm:inline text-slate-600">|</span>
+          <span className="hidden sm:inline text-slate-500">Command Centre</span>
         </div>
 
-        {/* Main title */}
-        <h1 className="text-4xl sm:text-6xl md:text-7xl font-mono font-black tracking-tight mb-4">
-          <span className="holo-title">AI Command</span>
-          <br />
-          <span className="text-white/90">Centre</span>
-        </h1>
-
-        {/* Typewriter */}
-        <p className="mt-4 text-base sm:text-lg font-mono text-slate-400 h-7 flex items-center gap-1">
-          {typeText}
-          <span className="inline-block w-0.5 h-5 bg-cyan-400 animate-pulse ml-0.5" />
-        </p>
-
-        {/* Description */}
-        <p className="mt-6 max-w-lg text-sm text-slate-500 leading-relaxed">
-          Helix is your autonomous AI engineering platform. Generate, deploy, and manage your entire
-          full-stack product — all from a single intelligent command centre.
-        </p>
-
-        {/* CTA */}
-        <div className="mt-10 flex flex-col sm:flex-row items-center gap-3">
-          <Link
-            href="/agent"
-            className="group relative inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl text-sm font-mono font-bold text-black bg-cyan-400 hover:bg-cyan-300 transition-all shadow-[0_0_30px_rgba(0,200,255,0.45)] hover:shadow-[0_0_45px_rgba(0,200,255,0.65)]"
-          >
-            <ZapIcon className="w-4 h-4" />
-            Open Helix Code Agent
-            <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-          </Link>
-          <a
-            href="https://github.com/tiagocruz3/aios"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-sm font-mono text-slate-400 border border-slate-600/40 hover:text-slate-200 hover:border-slate-500/60 transition-all"
-          >
-            View Source
-          </a>
+        <div className="flex items-center gap-3 sm:gap-4 text-slate-400">
+          <span className="hidden sm:flex items-center gap-1.5" title="CPU load">
+            <CpuIcon className="w-3.5 h-3.5 text-cyan-400/70" />
+            {cpu}%
+          </span>
+          <span className="hidden sm:flex items-center gap-1.5" title="Memory">
+            <CircleIcon className="w-3 h-3 text-purple-400/70" />
+            MEM {mem}%
+          </span>
+          <span className="hidden md:flex items-center gap-1.5" title="Network">
+            <WifiIcon className="w-3.5 h-3.5 text-emerald-400/70" />
+            {net} Mb/s
+          </span>
+          <span className="flex items-center gap-1.5 text-cyan-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            {time}
+          </span>
         </div>
-      </section>
+      </header>
 
-      {/* ── Stats bar ─────────────────────────────────────────────────── */}
-      <section className="relative z-10 border-y border-cyan-500/10 bg-black/20 backdrop-blur-sm">
-        <div className="grid grid-cols-2 sm:grid-cols-4 max-w-3xl mx-auto">
-          {stats.map((s, i) => {
-            const Icon = s.icon
-            return (
-              <div
-                key={s.label}
-                className="flex flex-col items-center gap-1 px-6 py-5 border-r border-cyan-500/10 last:border-r-0"
-              >
-                <Icon className="w-4 h-4 text-cyan-400/60 mb-0.5" />
-                <span className="text-xl font-mono font-black text-cyan-300">{s.value}</span>
-                <span className="text-xs font-mono text-slate-500">{s.label}</span>
-              </div>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* ── Module cards ──────────────────────────────────────────────── */}
-      <section className="relative z-10 px-6 py-16 md:px-10">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-center text-xs font-mono text-slate-600 tracking-[0.2em] mb-8 uppercase">
-            Integrated Systems
+      {/* ── DESKTOP ────────────────────────────────────────────────── */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center min-h-0 overflow-hidden px-4">
+        {/* greeting */}
+        <div className="absolute top-4 left-4 sm:top-6 sm:left-8 text-left pointer-events-none">
+          <p className="text-xs font-mono text-slate-500">{date}</p>
+          <p className="text-lg sm:text-2xl font-mono font-bold text-white/80 mt-1">
+            Good to see you.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {modules.map((m) => {
-              const Icon = m.icon
-              return (
-                <Link
-                  key={m.label}
-                  href="/agent"
-                  className={`group flex flex-col gap-3 p-4 rounded-xl border ${m.border} ${m.bg} ${m.glow} backdrop-blur-sm hover:scale-[1.025] hover:brightness-110 transition-all duration-200 cursor-pointer`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className={`flex items-center justify-center w-9 h-9 rounded-lg ${m.iconBg}`}>
-                      <Icon className={`w-4.5 h-4.5 ${m.iconColor}`} />
-                    </div>
-                    <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${m.tagColor}`}>
-                      {m.tag}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-mono font-semibold text-white/80 mb-1">{m.label}</p>
-                    <p className="text-xs text-slate-500 leading-relaxed">{m.desc}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs font-mono text-slate-600 group-hover:text-slate-400 transition-colors mt-auto">
-                    Open <ArrowRightIcon className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
+          <p className="text-xs sm:text-sm font-mono text-cyan-400/70 mt-0.5">
+            How can I help you build today?
+          </p>
         </div>
-      </section>
 
-      {/* ── Footer ───────────────────────────────────────────────────── */}
-      <footer className="relative z-10 border-t border-cyan-500/10 py-6 text-center text-xs font-mono text-slate-600">
-        HELIX © {new Date().getFullYear()} — AI Command Centre
+        {/* orb */}
+        <JarvisOrb listening />
+
+        {/* status under orb */}
+        <div className="mt-2 flex items-center gap-2 text-xs font-mono text-cyan-400/70">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+          HELIX ASSISTANT — STANDING BY
+        </div>
+      </main>
+
+      {/* ── APP DOCK / LAUNCHER ────────────────────────────────────── */}
+      <footer className="relative z-20 flex flex-col items-center pb-5 pt-2 px-4">
+        <p className="text-[10px] font-mono text-slate-600 tracking-[0.25em] uppercase mb-3">
+          App Manager
+        </p>
+        <div className="flex items-end justify-center gap-2 sm:gap-4 flex-wrap max-w-3xl px-4 py-3 rounded-2xl border border-cyan-500/15 bg-black/30 backdrop-blur-xl shadow-[0_0_40px_rgba(0,150,255,0.08)]">
+          {apps.map((app) => (
+            <AppIcon key={app.id} app={app} onLaunch={launch} />
+          ))}
+        </div>
       </footer>
     </div>
   )

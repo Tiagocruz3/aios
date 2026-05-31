@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Preview } from '@/app/preview'
 import { FileExplorer } from '@/app/file-explorer'
 import { Logs } from '@/app/logs'
@@ -21,8 +22,15 @@ import {
 
 type View = 'preview' | 'code' | 'git' | 'vercel' | 'supabase'
 
+const VALID_VIEWS: View[] = ['preview', 'code', 'git', 'vercel', 'supabase']
+
 export function RightPanel() {
-  const [activeView, setActiveView] = useState<View>('preview')
+  const params = useSearchParams()
+  const requested = params.get('app')
+  const initialView: View = VALID_VIEWS.includes(requested as View)
+    ? (requested as View)
+    : 'preview'
+  const [activeView, setActiveView] = useState<View>(initialView)
   const [logsOpen, setLogsOpen] = useState(false)
 
   return (
