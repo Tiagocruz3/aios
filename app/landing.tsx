@@ -78,35 +78,38 @@ function JarvisOrb({ listening }: { listening: boolean }) {
       <div
         className="relative flex items-center justify-center rounded-full"
         style={{
-          width: '46%',
-          height: '46%',
+          width: '44%',
+          height: '44%',
           background:
-            'radial-gradient(circle at 50% 40%, rgba(120,230,255,0.9), rgba(0,170,255,0.55) 40%, rgba(40,0,120,0.25) 75%, transparent 100%)',
+            'radial-gradient(circle at 50% 38%, rgba(255,255,255,0.95), rgba(150,225,255,0.7) 35%, rgba(0,150,220,0.4) 68%, transparent 100%)',
           boxShadow: listening
-            ? '0 0 80px rgba(0,210,255,0.65), inset 0 0 50px rgba(120,230,255,0.5)'
-            : '0 0 50px rgba(0,200,255,0.4), inset 0 0 40px rgba(80,200,255,0.35)',
-          animation: 'orb-breathe 4s ease-in-out infinite',
+            ? '0 0 70px -6px rgba(0,200,255,0.5), inset 0 0 44px rgba(180,235,255,0.4)'
+            : '0 0 46px -8px rgba(0,190,255,0.35), inset 0 0 36px rgba(150,220,255,0.3)',
+          animation: 'orb-breathe 5s ease-in-out infinite',
         }}
       >
         {/* inner swirling plasma */}
         <div
-          className="absolute inset-2 rounded-full opacity-70"
+          className="absolute inset-2 rounded-full opacity-60"
           style={{
             background:
-              'conic-gradient(from 0deg, transparent, rgba(140,240,255,0.5), transparent, rgba(160,120,255,0.4), transparent)',
-            animation: 'spin 6s linear infinite',
-            filter: 'blur(6px)',
+              'conic-gradient(from 0deg, transparent, rgba(190,240,255,0.6), transparent, rgba(120,200,255,0.35), transparent)',
+            animation: 'spin 7s linear infinite',
+            filter: 'blur(7px)',
           }}
         />
-        <BrainCircuitIcon className="relative w-10 h-10 sm:w-12 sm:h-12 text-white/90 drop-shadow-[0_0_8px_rgba(0,220,255,0.9)]" />
+        <BrainCircuitIcon
+          className="relative w-9 h-9 sm:w-11 sm:h-11 text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.8)]"
+          strokeWidth={1.25}
+        />
       </div>
 
       {/* equaliser bars under core when "listening" */}
-      <div className="absolute bottom-[20%] flex items-end gap-1 h-6">
+      <div className="absolute bottom-[20%] flex items-end gap-1 h-5">
         {[0, 1, 2, 3, 4, 5, 6].map((i) => (
           <span
             key={i}
-            className="w-1 rounded-full bg-cyan-400/80"
+            className="w-px sm:w-0.5 rounded-full bg-cyan-200/70"
             style={{
               height: '100%',
               animation: `eq-bar 1.1s ease-in-out ${i * 0.12}s infinite`,
@@ -127,7 +130,6 @@ type AppDef = {
   icon: typeof ZapIcon
   href?: string
   status: 'online' | 'soon' | 'locked'
-  accent: string
 }
 
 const apps: AppDef[] = [
@@ -138,7 +140,6 @@ const apps: AppDef[] = [
     icon: ZapIcon,
     href: '/agent',
     status: 'online',
-    accent: 'cyan',
   },
   {
     id: 'git',
@@ -147,7 +148,6 @@ const apps: AppDef[] = [
     icon: GitBranchIcon,
     href: '/agent?app=git',
     status: 'online',
-    accent: 'purple',
   },
   {
     id: 'vercel',
@@ -156,7 +156,6 @@ const apps: AppDef[] = [
     icon: CloudIcon,
     href: '/agent?app=vercel',
     status: 'online',
-    accent: 'slate',
   },
   {
     id: 'supabase',
@@ -165,7 +164,6 @@ const apps: AppDef[] = [
     icon: DatabaseIcon,
     href: '/agent?app=supabase',
     status: 'online',
-    accent: 'emerald',
   },
   {
     id: 'terminal',
@@ -173,7 +171,6 @@ const apps: AppDef[] = [
     desc: 'System shell',
     icon: TerminalIcon,
     status: 'soon',
-    accent: 'slate',
   },
   {
     id: 'new',
@@ -182,39 +179,10 @@ const apps: AppDef[] = [
     icon: PlusIcon,
     href: '/agent',
     status: 'online',
-    accent: 'cyan',
   },
 ]
 
-const accentMap: Record<string, { ring: string; icon: string; bg: string; glow: string }> = {
-  cyan: {
-    ring: 'border-cyan-500/40',
-    icon: 'text-cyan-300',
-    bg: 'bg-cyan-500/10',
-    glow: 'group-hover:shadow-[0_0_24px_rgba(0,200,255,0.35)]',
-  },
-  purple: {
-    ring: 'border-purple-500/40',
-    icon: 'text-purple-300',
-    bg: 'bg-purple-500/10',
-    glow: 'group-hover:shadow-[0_0_24px_rgba(168,85,247,0.3)]',
-  },
-  emerald: {
-    ring: 'border-emerald-500/40',
-    icon: 'text-emerald-300',
-    bg: 'bg-emerald-500/10',
-    glow: 'group-hover:shadow-[0_0_24px_rgba(52,211,153,0.3)]',
-  },
-  slate: {
-    ring: 'border-slate-500/40',
-    icon: 'text-slate-300',
-    bg: 'bg-slate-500/10',
-    glow: 'group-hover:shadow-[0_0_24px_rgba(148,163,184,0.25)]',
-  },
-}
-
 function AppIcon({ app, onLaunch }: { app: AppDef; onLaunch: (a: AppDef) => void }) {
-  const a = accentMap[app.accent]
   const Icon = app.icon
   const disabled = app.status === 'soon' || app.status === 'locked'
   return (
@@ -222,29 +190,38 @@ function AppIcon({ app, onLaunch }: { app: AppDef; onLaunch: (a: AppDef) => void
       type="button"
       disabled={disabled}
       onClick={() => onLaunch(app)}
-      className={`group relative flex flex-col items-center gap-2 w-[88px] sm:w-[104px] ${
-        disabled ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'
+      className={`group relative flex flex-col items-center gap-2.5 w-[84px] sm:w-[100px] ${
+        disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
       }`}
     >
       <span
-        className={`relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border ${a.ring} ${a.bg} backdrop-blur-md transition-all duration-200 ${
-          disabled ? '' : `group-hover:scale-110 ${a.glow}`
+        className={`relative flex items-center justify-center w-14 h-14 sm:w-[60px] sm:h-[60px] rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-md transition-all duration-300 ${
+          disabled
+            ? ''
+            : 'group-hover:scale-105 group-hover:border-cyan-400/40 group-hover:bg-cyan-400/[0.06] group-hover:shadow-[0_0_28px_-4px_rgba(0,200,255,0.4)]'
         }`}
       >
-        <Icon className={`w-6 h-6 sm:w-7 sm:h-7 ${a.icon}`} />
+        <Icon
+          className={`w-[22px] h-[22px] sm:w-6 sm:h-6 transition-colors duration-300 ${
+            disabled
+              ? 'text-slate-500'
+              : 'text-slate-300 group-hover:text-white'
+          }`}
+          strokeWidth={1.5}
+        />
         {app.status === 'online' && (
-          <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-black/60 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+          <span className="absolute top-2 right-2 w-1 h-1 rounded-full bg-cyan-300/90 shadow-[0_0_6px_rgba(0,220,255,0.9)]" />
         )}
         {app.status === 'soon' && (
-          <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-[8px] font-mono px-1 rounded bg-black/70 border border-slate-600/50 text-slate-400">
+          <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[7px] font-mono tracking-[0.15em] px-1.5 py-px rounded bg-white/5 border border-white/10 text-slate-500">
             SOON
           </span>
         )}
         {app.status === 'locked' && (
-          <LockIcon className="absolute -bottom-1 -right-1 w-3.5 h-3.5 text-slate-500 bg-black/70 rounded-full p-0.5" />
+          <LockIcon className="absolute top-2 right-2 w-3 h-3 text-slate-500" strokeWidth={1.5} />
         )}
       </span>
-      <span className="text-[11px] font-mono text-slate-300 group-hover:text-cyan-200 transition-colors text-center leading-tight">
+      <span className="text-[10.5px] font-mono tracking-wide text-slate-400 group-hover:text-slate-200 transition-colors text-center leading-tight">
         {app.name}
       </span>
     </button>
@@ -253,16 +230,15 @@ function AppIcon({ app, onLaunch }: { app: AppDef; onLaunch: (a: AppDef) => void
 
 /* ── 3D cube launch transition ──────────────────────────────────── */
 function LaunchTransition({ app }: { app: AppDef }) {
-  const a = accentMap[app.accent]
   const Icon = app.icon
   return (
     <div className="launch-scene">
       <div className="launch-cube">
         {/* front face = the desktop turning away */}
         <div className="launch-face launch-face-front">
-          <div className="flex flex-col items-center gap-3 opacity-60">
-            <BrainCircuitIcon className="w-10 h-10 text-cyan-300/80" />
-            <span className="text-xs font-mono tracking-[0.3em] text-cyan-400/60">
+          <div className="flex flex-col items-center gap-3 opacity-50">
+            <BrainCircuitIcon className="w-9 h-9 text-slate-300" strokeWidth={1.25} />
+            <span className="text-[11px] font-mono tracking-[0.35em] text-slate-500">
               HELIX&nbsp;OS
             </span>
           </div>
@@ -270,23 +246,23 @@ function LaunchTransition({ app }: { app: AppDef }) {
 
         {/* right face = the app swinging in */}
         <div className="launch-face launch-face-right">
-          <div className="flex flex-col items-center gap-5">
+          <div className="flex flex-col items-center gap-6">
             <span
-              className={`relative flex items-center justify-center w-24 h-24 rounded-3xl border ${a.ring} ${a.bg} shadow-[0_0_60px_rgba(0,200,255,0.3)]`}
+              className="relative flex items-center justify-center w-24 h-24 rounded-3xl border border-white/12 bg-white/[0.03] shadow-[0_0_70px_-10px_rgba(0,200,255,0.45)]"
               style={{ animation: 'launch-icon-pop 850ms cubic-bezier(.34,1.56,.64,1) forwards' }}
             >
-              <Icon className={`w-11 h-11 ${a.icon}`} />
+              <Icon className="w-10 h-10 text-white" strokeWidth={1.25} />
             </span>
             <div className="text-center">
-              <p className="text-lg font-mono font-bold text-white/90 tracking-wide">
+              <p className="text-base font-mono font-medium text-white/90 tracking-[0.15em]">
                 {app.name}
               </p>
-              <p className="text-xs font-mono text-cyan-400/70 mt-1 tracking-[0.25em]">
+              <p className="text-[10px] font-mono text-slate-500 mt-2 tracking-[0.4em]">
                 LAUNCHING
               </p>
             </div>
-            <div className="w-44 h-1 rounded-full bg-white/10 overflow-hidden">
-              <div className="launch-progress h-full rounded-full bg-gradient-to-r from-cyan-400 to-purple-400" />
+            <div className="w-40 h-px bg-white/10 overflow-hidden">
+              <div className="launch-progress h-full bg-cyan-300/90" />
             </div>
           </div>
         </div>
@@ -340,12 +316,15 @@ export function Landing() {
   /* ── boot overlay ─────────────────────────────────────────────── */
   if (booting) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-black/40 backdrop-blur-sm font-mono">
-        <BrainCircuitIcon className="w-10 h-10 text-cyan-300 animate-pulse mb-2 drop-shadow-[0_0_12px_rgba(0,220,255,0.8)]" />
-        <div className="flex flex-col gap-1 text-xs text-cyan-400/80 w-[280px]">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black/50 backdrop-blur-md font-mono">
+        <BrainCircuitIcon
+          className="w-9 h-9 text-white/90 animate-pulse drop-shadow-[0_0_14px_rgba(0,200,255,0.6)]"
+          strokeWidth={1.1}
+        />
+        <div className="flex flex-col gap-1.5 text-[11px] tracking-[0.15em] text-slate-400 w-[290px]">
           {bootLines.slice(0, bootLine).map((l, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className="text-emerald-400">✓</span>
+            <div key={i} className="flex items-center gap-2.5">
+              <span className="text-cyan-300/80">›</span>
               {l}
             </div>
           ))}
@@ -370,22 +349,22 @@ export function Landing() {
           <span className="hidden sm:inline text-slate-500">Command Centre</span>
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4 text-slate-400">
+        <div className="flex items-center gap-4 sm:gap-5 text-slate-500">
           <span className="hidden sm:flex items-center gap-1.5" title="CPU load">
-            <CpuIcon className="w-3.5 h-3.5 text-cyan-400/70" />
-            {cpu}%
+            <CpuIcon className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.5} />
+            <span className="tabular-nums">{cpu}%</span>
           </span>
           <span className="hidden sm:flex items-center gap-1.5" title="Memory">
-            <CircleIcon className="w-3 h-3 text-purple-400/70" />
-            MEM {mem}%
+            <CircleIcon className="w-3 h-3 text-slate-500" strokeWidth={1.5} />
+            <span className="tabular-nums">MEM {mem}%</span>
           </span>
           <span className="hidden md:flex items-center gap-1.5" title="Network">
-            <WifiIcon className="w-3.5 h-3.5 text-emerald-400/70" />
-            {net} Mb/s
+            <WifiIcon className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.5} />
+            <span className="tabular-nums">{net} Mb/s</span>
           </span>
-          <span className="flex items-center gap-1.5 text-cyan-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            {time}
+          <span className="flex items-center gap-2 text-slate-300">
+            <span className="w-1 h-1 rounded-full bg-cyan-300/90 shadow-[0_0_6px_rgba(0,220,255,0.9)]" />
+            <span className="tabular-nums tracking-wide">{time}</span>
           </span>
         </div>
       </header>
@@ -393,12 +372,14 @@ export function Landing() {
       {/* ── DESKTOP ────────────────────────────────────────────────── */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center min-h-0 overflow-hidden px-4">
         {/* greeting */}
-        <div className="absolute top-4 left-4 sm:top-6 sm:left-8 text-left pointer-events-none">
-          <p className="text-xs font-mono text-slate-500">{date}</p>
-          <p className="text-lg sm:text-2xl font-mono font-bold text-white/80 mt-1">
+        <div className="absolute top-5 left-5 sm:top-7 sm:left-9 text-left pointer-events-none">
+          <p className="text-[10px] font-mono tracking-[0.25em] uppercase text-slate-600">
+            {date}
+          </p>
+          <p className="text-xl sm:text-3xl font-mono font-light text-white/85 mt-2 tracking-tight">
             Good to see you.
           </p>
-          <p className="text-xs sm:text-sm font-mono text-cyan-400/70 mt-0.5">
+          <p className="text-xs sm:text-sm font-mono text-slate-500 mt-1">
             How can I help you build today?
           </p>
         </div>
@@ -407,18 +388,18 @@ export function Landing() {
         <JarvisOrb listening />
 
         {/* status under orb */}
-        <div className="mt-2 flex items-center gap-2 text-xs font-mono text-cyan-400/70">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+        <div className="mt-2 flex items-center gap-2.5 text-[10px] font-mono tracking-[0.3em] text-slate-500">
+          <span className="w-1 h-1 rounded-full bg-cyan-300/90 shadow-[0_0_6px_rgba(0,220,255,0.9)]" />
           HELIX ASSISTANT — STANDING BY
         </div>
       </main>
 
       {/* ── APP DOCK / LAUNCHER ────────────────────────────────────── */}
-      <footer className="relative z-20 flex flex-col items-center pb-5 pt-2 px-4">
-        <p className="text-[10px] font-mono text-slate-600 tracking-[0.25em] uppercase mb-3">
-          App Manager
+      <footer className="relative z-20 flex flex-col items-center pb-6 pt-2 px-4">
+        <p className="text-[9px] font-mono text-slate-600 tracking-[0.35em] uppercase mb-3.5">
+          App&nbsp;Manager
         </p>
-        <div className="flex items-end justify-center gap-2 sm:gap-4 flex-wrap max-w-3xl px-4 py-3 rounded-2xl border border-cyan-500/15 bg-black/30 backdrop-blur-xl shadow-[0_0_40px_rgba(0,150,255,0.08)]">
+        <div className="flex items-end justify-center gap-1.5 sm:gap-3 flex-wrap max-w-3xl px-5 py-4 rounded-3xl border border-white/8 bg-white/[0.015] backdrop-blur-2xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.04)]">
           {apps.map((app) => (
             <AppIcon key={app.id} app={app} onLaunch={launch} />
           ))}

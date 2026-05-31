@@ -909,17 +909,17 @@ body {
 .launch-face-front {
   transform: translateZ(50vw);
   background:
-    radial-gradient(circle at 50% 45%, rgba(0,40,80,0.5), transparent 60%),
-    linear-gradient(160deg, #02070f, #040a16);
-  border: 1px solid rgba(0, 200, 255, 0.12);
+    radial-gradient(circle at 50% 45%, rgba(20,40,70,0.35), transparent 62%),
+    linear-gradient(160deg, #04070d, #060a12);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .launch-face-right {
   transform: rotateY(90deg) translateZ(50vw);
   background:
-    radial-gradient(circle at 50% 50%, rgba(0,30,70,0.55), transparent 65%),
-    linear-gradient(160deg, #030a18, #02060f);
-  border: 1px solid rgba(0, 200, 255, 0.18);
+    radial-gradient(circle at 50% 50%, rgba(20,45,80,0.4), transparent 66%),
+    linear-gradient(160deg, #05090f, #04070d);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 @keyframes cube-launch {
