@@ -8,12 +8,7 @@ interface Props {
 
 export function Panel({ className, children }: Props) {
   return (
-    <div
-      className={cn(
-        'flex flex-col relative border border-primary/18 w-full h-full shadow-sm rounded-sm',
-        className
-      )}
-    >
+    <div className={cn('holo-panel flex flex-col relative w-full h-full', className)}>
       {children}
     </div>
   )
@@ -21,12 +16,7 @@ export function Panel({ className, children }: Props) {
 
 export function PanelHeader({ className, children }: Props) {
   return (
-    <div
-      className={cn(
-        'text-sm flex items-center border-b border-primary/18 px-2.5 py-1.5 text-secondary-foreground bg-secondary',
-        className
-      )}
-    >
+    <div className={cn('holo-panel-header text-sm flex items-center px-2.5 py-1.5', className)}>
       {children}
     </div>
   )

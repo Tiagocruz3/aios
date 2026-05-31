@@ -60,38 +60,38 @@
 }
 
 .dark {
-  --background: rgb(10, 10, 10);
-  --foreground: rgb(250, 250, 250);
-  --card: rgb(25, 25, 25);
-  --card-foreground: rgb(250, 250, 250);
-  --popover: rgb(38, 38, 38);
-  --popover-foreground: rgb(250, 250, 250);
-  --primary: rgb(115, 115, 115);
-  --primary-foreground: rgb(250, 250, 250);
-  --secondary: rgb(38, 38, 38);
-  --secondary-foreground: rgb(250, 250, 250);
-  --muted: rgb(38, 38, 38);
-  --muted-foreground: rgb(161, 161, 161);
-  --accent: rgb(64, 64, 64);
-  --accent-foreground: rgb(250, 250, 250);
-  --destructive: rgb(255, 100, 103);
-  --destructive-foreground: rgb(38, 38, 38);
-  --border: rgb(56, 56, 56);
-  --input: rgb(82, 82, 82);
-  --ring: rgb(115, 115, 115);
-  --chart-1: rgb(115, 115, 115);
-  --chart-2: rgb(115, 115, 115);
-  --chart-3: rgb(115, 115, 115);
-  --chart-4: rgb(115, 115, 115);
-  --chart-5: rgb(115, 115, 115);
-  --sidebar: rgb(23, 23, 23);
-  --sidebar-foreground: rgb(250, 250, 250);
-  --sidebar-primary: rgb(250, 250, 250);
-  --sidebar-primary-foreground: rgb(23, 23, 23);
-  --sidebar-accent: rgb(38, 38, 38);
-  --sidebar-accent-foreground: rgb(250, 250, 250);
-  --sidebar-border: rgb(255, 255, 255);
-  --sidebar-ring: rgb(82, 82, 82);
+  --background: rgb(0, 5, 15);
+  --foreground: rgb(220, 235, 255);
+  --card: rgb(0, 12, 28);
+  --card-foreground: rgb(220, 235, 255);
+  --popover: rgb(0, 18, 38);
+  --popover-foreground: rgb(220, 235, 255);
+  --primary: rgb(0, 200, 255);
+  --primary-foreground: rgb(0, 5, 15);
+  --secondary: rgb(0, 15, 35);
+  --secondary-foreground: rgb(180, 210, 240);
+  --muted: rgb(0, 20, 45);
+  --muted-foreground: rgb(100, 160, 200);
+  --accent: rgb(0, 30, 60);
+  --accent-foreground: rgb(0, 220, 255);
+  --destructive: rgb(255, 80, 100);
+  --destructive-foreground: rgb(0, 5, 15);
+  --border: rgb(0, 100, 140);
+  --input: rgb(0, 40, 70);
+  --ring: rgb(0, 180, 220);
+  --chart-1: rgb(0, 200, 255);
+  --chart-2: rgb(168, 85, 247);
+  --chart-3: rgb(59, 130, 246);
+  --chart-4: rgb(0, 255, 128);
+  --chart-5: rgb(244, 114, 182);
+  --sidebar: rgb(0, 8, 20);
+  --sidebar-foreground: rgb(220, 235, 255);
+  --sidebar-primary: rgb(0, 200, 255);
+  --sidebar-primary-foreground: rgb(0, 5, 15);
+  --sidebar-accent: rgb(0, 20, 45);
+  --sidebar-accent-foreground: rgb(0, 220, 255);
+  --sidebar-border: rgb(0, 80, 120);
+  --sidebar-ring: rgb(0, 180, 220);
   --font-sans: Geist, sans-serif;
   --font-serif: Geist Mono, monospace;
   --font-mono: Geist Mono, monospace;
@@ -161,4 +161,234 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
+}
+
+/* ============================================================
+   HOLOGRAPHIC BACKGROUND
+   ============================================================ */
+
+.holo-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  background: #000510;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.holo-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.holo-blob-1 {
+  width: 65vw;
+  height: 65vw;
+  top: -25%;
+  left: -20%;
+  background: radial-gradient(circle at center, rgba(0, 200, 255, 0.22) 0%, transparent 70%);
+  animation: aurora-1 22s ease-in-out infinite;
+}
+
+.holo-blob-2 {
+  width: 55vw;
+  height: 55vw;
+  bottom: -20%;
+  right: -15%;
+  background: radial-gradient(circle at center, rgba(168, 85, 247, 0.18) 0%, transparent 70%);
+  animation: aurora-2 28s ease-in-out infinite;
+}
+
+.holo-blob-3 {
+  width: 45vw;
+  height: 45vw;
+  top: 35%;
+  right: 25%;
+  background: radial-gradient(circle at center, rgba(59, 130, 246, 0.16) 0%, transparent 70%);
+  animation: aurora-3 19s ease-in-out infinite;
+}
+
+.holo-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 180, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 180, 255, 0.055) 1px, transparent 1px);
+  background-size: 44px 44px;
+  animation: grid-breathe 6s ease-in-out infinite;
+}
+
+.holo-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    transparent 35%,
+    rgba(0, 3, 10, 0.65) 100%
+  );
+}
+
+/* ============================================================
+   HOLOGRAPHIC PANELS
+   ============================================================ */
+
+.holo-panel {
+  background: rgba(0, 10, 24, 0.72);
+  border: 1px solid rgba(0, 180, 255, 0.18);
+  box-shadow:
+    0 0 18px rgba(0, 180, 255, 0.06),
+    0 0 40px rgba(0, 180, 255, 0.03),
+    inset 0 1px 0 rgba(0, 200, 255, 0.08),
+    inset 0 0 30px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  border-radius: 0.5rem;
+  animation: panel-glow 6s ease-in-out infinite;
+}
+
+.holo-panel-header {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 25, 50, 0.85) 0%,
+    rgba(0, 12, 28, 0.9) 100%
+  );
+  border-bottom: 1px solid rgba(0, 180, 255, 0.12);
+  color: rgba(180, 220, 255, 0.9);
+  font-family: var(--font-mono);
+  border-radius: 0.5rem 0.5rem 0 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.holo-panel-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 200, 255, 0.04) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: header-sweep 8s linear infinite;
+}
+
+/* ============================================================
+   HOLOGRAPHIC TITLE
+   ============================================================ */
+
+.holo-title {
+  background: linear-gradient(
+    90deg,
+    #00ccff 0%,
+    #e2f0ff 30%,
+    #c084fc 60%,
+    #00ccff 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: holo-shimmer 7s linear infinite;
+}
+
+/* Alive indicator dot */
+.holo-pulse-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00e5ff;
+  box-shadow: 0 0 6px #00e5ff, 0 0 12px #00e5ff60;
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+/* ============================================================
+   HOLOGRAPHIC LOADER
+   ============================================================ */
+
+.holo-loader {
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(0, 200, 255, 0.1);
+  border-top-color: rgba(0, 200, 255, 0.8);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ============================================================
+   KEYFRAME ANIMATIONS
+   ============================================================ */
+
+@keyframes aurora-1 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  20%       { transform: translate(4%, 3%) scale(1.08); }
+  40%       { transform: translate(7%, -1%) scale(1.05); }
+  60%       { transform: translate(5%, 5%) scale(0.97); }
+  80%       { transform: translate(2%, 2%) scale(1.03); }
+}
+
+@keyframes aurora-2 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  25%       { transform: translate(-5%, -3%) scale(1.1); }
+  50%       { transform: translate(-8%, 2%) scale(1.15); }
+  75%       { transform: translate(-3%, -6%) scale(0.92); }
+}
+
+@keyframes aurora-3 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  33%       { transform: translate(-4%, 5%) scale(1.12); }
+  66%       { transform: translate(5%, -3%) scale(0.9); }
+}
+
+@keyframes grid-breathe {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+@keyframes panel-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 18px rgba(0, 180, 255, 0.06),
+      0 0 40px rgba(0, 180, 255, 0.03),
+      inset 0 1px 0 rgba(0, 200, 255, 0.08),
+      inset 0 0 30px rgba(0, 0, 0, 0.4);
+    border-color: rgba(0, 180, 255, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 0 28px rgba(0, 200, 255, 0.12),
+      0 0 60px rgba(0, 200, 255, 0.06),
+      inset 0 1px 0 rgba(0, 220, 255, 0.12),
+      inset 0 0 30px rgba(0, 0, 0, 0.4);
+    border-color: rgba(0, 200, 255, 0.32);
+  }
+}
+
+@keyframes header-sweep {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes holo-shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes dot-pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 6px #00e5ff, 0 0 12px rgba(0, 229, 255, 0.4);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 3px #00e5ff, 0 0 6px rgba(0, 229, 255, 0.2);
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

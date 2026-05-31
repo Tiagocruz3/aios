@@ -9,11 +9,12 @@ interface Props {
 export async function Header({ className }: Props) {
   return (
     <header className={cn('flex items-center justify-between', className)}>
-      <div className="flex items-center">
-        <VercelDashed className="ml-1 md:ml-2.5 mr-1.5" />
-        <span className="hidden md:inline text-sm uppercase font-mono font-bold tracking-tight">
+      <div className="flex items-center gap-2">
+        <VercelDashed className="ml-1 md:ml-2.5 mr-0.5 opacity-80" />
+        <span className="hidden md:inline text-sm uppercase font-mono font-bold tracking-tight holo-title">
           OSS Vibe Coding Platform
         </span>
+        <span className="holo-pulse-dot" />
       </div>
       <div className="flex items-center ml-auto space-x-1.5">
         <ToggleWelcome />

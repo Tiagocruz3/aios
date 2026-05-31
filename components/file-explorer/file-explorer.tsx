@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { FileContent } from '@/components/file-explorer/file-content'
 import { Panel, PanelHeader } from '@/components/panels/panels'
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { buildFileTree, type FileNode } from './build-file-tree'
 import { useState, useMemo, useEffect, useCallback, memo } from 'react'
 import { cn } from '@/lib/utils'
@@ -86,17 +86,16 @@ export const FileExplorer = memo(function FileExplorer({
       </PanelHeader>
 
       <div className="flex text-sm h-[calc(100%-2rem-1px)]">
-        <ScrollArea className="w-1/4 border-r border-primary/18 flex-shrink-0">
+        <ScrollArea className="w-1/4 border-r border-cyan-500/10 flex-shrink-0">
           <div>{renderFileTree(fs)}</div>
         </ScrollArea>
         {selected && sandboxId && !disabled && (
-          <ScrollArea className="w-3/4 flex-shrink-0">
+          <div className="flex-1 min-w-0 overflow-hidden">
             <FileContent
               sandboxId={sandboxId}
               path={selected.path.substring(1)}
             />
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+          </div>
         )}
       </div>
     </Panel>
@@ -131,8 +130,11 @@ const FileTreeNode = memo(function FileTreeNode({
     <div>
       <div
         className={cn(
-          `flex items-center py-0.5 px-1 hover:bg-gray-100 cursor-pointer`,
-          { 'bg-gray-200/80': selected?.path === node.path }
+          'flex items-center py-0.5 px-1 cursor-pointer transition-colors duration-100',
+          'hover:bg-cyan-500/5 hover:text-cyan-300',
+          selected?.path === node.path
+            ? 'bg-cyan-500/10 text-cyan-300 border-l border-cyan-500/50'
+            : 'text-slate-400 border-l border-transparent'
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={handleClick}
@@ -140,19 +142,19 @@ const FileTreeNode = memo(function FileTreeNode({
         {node.type === 'folder' ? (
           <>
             {node.expanded ? (
-              <ChevronDownIcon className="w-4 mr-1" />
+              <ChevronDownIcon className="w-4 mr-1 text-cyan-600" />
             ) : (
-              <ChevronRightIcon className="w-4 mr-1" />
+              <ChevronRightIcon className="w-4 mr-1 text-cyan-800" />
             )}
-            <FolderIcon className="w-4 mr-2" />
+            <FolderIcon className="w-4 mr-2 text-cyan-500/70" />
           </>
         ) : (
           <>
             <div className="w-4 mr-1" />
-            <FileIcon className="w-4 mr-2 " />
+            <FileIcon className="w-4 mr-2 text-slate-500" />
           </>
         )}
-        <span className="">{node.name}</span>
+        <span>{node.name}</span>
       </div>
 
       {node.type === 'folder' && node.expanded && node.children && (
