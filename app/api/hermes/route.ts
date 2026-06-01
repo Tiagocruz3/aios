@@ -1,10 +1,12 @@
 import {
   convertToModelMessages,
   streamText,
+  type ToolSet,
   type UIMessage,
 } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import { NextResponse } from 'next/server'
+import { getN8nTools } from '@/lib/n8n-mcp'
 
 /* Hermes Chat proxy.
 
@@ -44,9 +46,13 @@ export async function POST(req: Request) {
     apiKey: API_KEY,
   })
 
+  const { tools: n8nTools, close: closeN8n } = await getN8nTools()
+
   const result = streamText({
     model: hermes.chat(MODEL),
     messages: await convertToModelMessages(messages),
+    ...(Object.keys(n8nTools).length ? { tools: n8nTools as ToolSet } : {}),
+    onFinish: closeN8n,
     onError: (error) => {
       console.error('Hermes bridge error')
       console.error(JSON.stringify(error, null, 2))

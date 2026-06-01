@@ -5,12 +5,14 @@ import {
   createUIMessageStreamResponse,
   stepCountIs,
   streamText,
+  type ToolSet,
 } from 'ai'
 import { DEFAULT_MODEL, MODEL_NAMES, SUPPORTED_MODELS } from '@/ai/constants'
 import { NextResponse } from 'next/server'
 import { getModelOptions } from '@/ai/gateway'
 import { checkBotId } from 'botid/server'
 import { tools } from '@/ai/tools'
+import { getN8nTools } from '@/lib/n8n-mcp'
 import prompt from './prompt.md'
 
 interface BodyData {
@@ -33,6 +35,8 @@ export async function POST(req: Request) {
       { status: 400 }
     )
   }
+
+  const { tools: n8nTools, close: closeN8n } = await getN8nTools()
 
   return createUIMessageStreamResponse({
     stream: createUIMessageStream({
@@ -63,7 +67,8 @@ export async function POST(req: Request) {
             })
           ),
           stopWhen: stepCountIs(20),
-          tools: tools({ modelId, writer }),
+          tools: { ...tools({ modelId, writer }), ...n8nTools } as ToolSet,
+          onFinish: closeN8n,
           onError: (error) => {
             console.error('Error communicating with AI')
             console.error(JSON.stringify(error, null, 2))

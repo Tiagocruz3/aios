@@ -1,4 +1,5 @@
 import { AutoFixErrors } from './auto-fix-errors'
+import { N8nStatus } from './n8n-status'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -20,6 +21,9 @@ export function Settings() {
         <div className="p-4 space-y-6">
           <AutoFixErrors />
           <ReasoningEffort />
+          <div className="border-t border-white/6 pt-5">
+            <N8nStatus />
+          </div>
         </div>
       </PopoverContent>
     </Popover>
