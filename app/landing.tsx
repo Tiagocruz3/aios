@@ -33,16 +33,25 @@ function useMeter(base: number, swing: number, speed = 2200) {
 }
 
 /* ── reactor core SVG ───────────────────────────────────────────── */
-function ReactorCore({ divRef }: { divRef: React.Ref<HTMLDivElement> }) {
+function ReactorCore({
+  divRef,
+  onLaunchChat,
+}: {
+  divRef: React.Ref<HTMLButtonElement>
+  onLaunchChat: () => void
+}) {
   const spin = (s: number, rev = false) => ({
     transformBox: 'fill-box' as const,
     transformOrigin: 'center' as const,
     animation: `spin ${s}s linear infinite${rev ? ' reverse' : ''}`,
   })
   return (
-    <div
+    <button
       ref={divRef}
-      className="relative flex items-center justify-center w-[280px] h-[280px] sm:w-[360px] sm:h-[360px]"
+      type="button"
+      onClick={onLaunchChat}
+      aria-label="Open Phantom Chat"
+      className="relative flex items-center justify-center w-[280px] h-[280px] sm:w-[360px] sm:h-[360px] rounded-full cursor-pointer transition-transform duration-300 hover:scale-[1.025] focus:outline-none focus:ring-2 focus:ring-cyan-300/50"
     >
       <svg
         viewBox="0 0 240 240"
@@ -128,7 +137,7 @@ function ReactorCore({ divRef }: { divRef: React.Ref<HTMLDivElement> }) {
           style={{ animation: 'orb-breathe 3s ease-in-out infinite',
                    transformBox: 'fill-box', transformOrigin: 'center' }} />
       </svg>
-    </div>
+    </button>
   )
 }
 
@@ -230,7 +239,7 @@ function WireOverlay({
   ready,
 }: {
   panelRefs: React.RefObject<Array<HTMLButtonElement | null>>
-  coreRef:   React.RefObject<HTMLDivElement | null>
+  coreRef:   React.RefObject<HTMLButtonElement | null>
   ready:     boolean
 }) {
   const [wires, setWires] = useState<WirePath[]>([])
@@ -418,7 +427,7 @@ export function Landing() {
 
   // refs for SVG wire overlay
   const panelRefs = useRef<Array<HTMLButtonElement | null>>(Array(6).fill(null))
-  const coreRef   = useRef<HTMLDivElement | null>(null)
+  const coreRef   = useRef<HTMLButtonElement | null>(null)
   // true only on the very first command-centre load this session
   const freshBoot = useRef(false)
 
@@ -456,11 +465,22 @@ export function Landing() {
     return () => clearTimeout(t)
   }, [bootLine, bootLines.length])
 
-  const launch = (app: AppDef) => {
-    if (!app.href || launching) return
+  const launchHref = (href: string, app: AppDef) => {
+    if (launching) return
     setLaunching(app)
-    router.prefetch(app.href)
-    setTimeout(() => router.push(app.href as string), 780)
+    router.prefetch(href)
+    setTimeout(() => router.push(href), 780)
+  }
+
+  const launch = (app: AppDef) => {
+    if (!app.href) return
+    launchHref(app.href, app)
+  }
+
+  const launchPhantomFromOrb = () => {
+    const phantom = apps.find((app) => app.id === 'hermes')
+    if (!phantom) return
+    launchHref('/hermes?start=orb', phantom)
   }
 
   const time = clock
@@ -563,7 +583,7 @@ export function Landing() {
 
         {/* reactor core */}
         <div className="flex flex-col items-center z-20">
-          <ReactorCore divRef={coreRef} />
+          <ReactorCore divRef={coreRef} onLaunchChat={launchPhantomFromOrb} />
           <div className="mt-1 flex items-center gap-2.5 text-[10px] font-mono tracking-[0.3em] text-slate-500">
             <span className="w-1 h-1 rounded-full bg-cyan-300/90 shadow-[0_0_6px_rgba(0,220,255,0.9)]" />
             HELIX&nbsp;ASSISTANT — STANDING&nbsp;BY

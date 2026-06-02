@@ -1,62 +1,24 @@
 import { randomUUID } from 'node:crypto'
 
 const DEFAULT_GATEWAY_URL =
-  process.env.OPENCLAW_GATEWAY_URL || 'wss://gateway.capsulerelay.com'
-const DEFAULT_MODEL = process.env.OPENCLAW_CHAT_MODEL || 'openai/gpt-5.4'
-const CONNECT_TIMEOUT_MS = 15000
+  process.env.OPENCLAW_GATEWAY_HTTP_URL ||
+  process.env.OPENCLAW_GATEWAY_URL ||
+  'https://chat.capsulerelay.com'
+const DEFAULT_MODEL = process.env.OPENCLAW_CHAT_MODEL || 'openai/gpt-5.5'
 const RESPONSE_TIMEOUT_MS = 60000
 
-type GatewayEventPayload = {
-  runId?: string
-  state?: 'delta' | 'final' | 'error' | 'aborted'
-  errorMessage?: string
+type ChatCompletionChoice = {
   message?: {
-    text?: string
-    content?: Array<{ type?: string; text?: string }>
+    content?: string | Array<{ type?: string; text?: string }>
   }
 }
 
-type GatewayEvent = {
-  event?: string
-  payload?: GatewayEventPayload
-}
-
-type GatewayClientInstance = {
-  start: () => void
-  stopAndWait: (opts?: { timeoutMs?: number }) => Promise<void>
-  request: <T = unknown>(
-    method: string,
-    params?: unknown,
-    opts?: { expectFinal?: boolean; timeoutMs?: number | null }
-  ) => Promise<T>
-}
-
-type GatewayClientConstructor = new (opts: {
-  url: string
-  token: string
-  clientName: 'gateway-client'
-  clientVersion: string
-  platform: string
-  mode: 'backend'
-  role: 'operator'
-  scopes: string[]
-  onEvent?: (event: GatewayEvent) => void
-}) => GatewayClientInstance
-
-async function loadGatewayClient() {
-  const importer = new Function('modulePath', 'return import(modulePath)') as (
-    modulePath: string
-  ) => Promise<{ n: GatewayClientConstructor }>
-
-  const module = await importer(
-    '/usr/local/lib/node_modules/openclaw/dist/client-CRyAb5LL.js'
-  )
-
-  return module.n
-}
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+type ChatCompletionResponse = {
+  choices?: ChatCompletionChoice[]
+  error?: {
+    message?: string
+    code?: string
+  }
 }
 
 function sanitizeSessionKey(sessionKey?: string) {
@@ -69,75 +31,31 @@ function sanitizeSessionKey(sessionKey?: string) {
   return safe || `phantom-chat-${randomUUID()}`
 }
 
-function extractGatewayText(payload?: GatewayEventPayload) {
-  if (!payload?.message) return ''
+function gatewayHttpBaseUrl() {
+  const raw = DEFAULT_GATEWAY_URL.trim().replace(/\/$/, '')
 
-  if (typeof payload.message.text === 'string' && payload.message.text.trim()) {
-    return payload.message.text.trim()
-  }
+  if (raw.startsWith('wss://')) return `https://${raw.slice('wss://'.length)}`
+  if (raw.startsWith('ws://')) return `http://${raw.slice('ws://'.length)}`
 
-  if (!Array.isArray(payload.message.content)) return ''
+  return raw
+}
 
-  return payload.message.content
+function extractChoiceText(choice?: ChatCompletionChoice) {
+  const content = choice?.message?.content
+
+  if (typeof content === 'string') return content.trim()
+  if (!Array.isArray(content)) return ''
+
+  return content
     .filter((part) => part?.type === 'text' && typeof part.text === 'string')
     .map((part) => part.text?.trim() ?? '')
     .filter(Boolean)
     .join('\n\n')
 }
 
-async function requestWhenConnected<T>(
-  client: GatewayClientInstance,
-  method: string,
-  params?: unknown,
-  timeoutMs = CONNECT_TIMEOUT_MS
-) {
-  const startedAt = Date.now()
-
-  while (true) {
-    try {
-      return await client.request<T>(method, params)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      const stillConnecting = message.includes('gateway not connected')
-
-      if (!stillConnecting || Date.now() - startedAt >= timeoutMs) {
-        throw error
-      }
-
-      await sleep(150)
-    }
-  }
-}
-
-async function ensureSession(
-  client: GatewayClientInstance,
-  sessionKey: string,
-  label: string
-) {
-  try {
-    await requestWhenConnected(client, 'sessions.create', {
-      key: sessionKey,
-      label,
-      agentId: 'main',
-      model: DEFAULT_MODEL,
-    })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    const duplicate =
-      message.includes('already exists') ||
-      message.includes('duplicate') ||
-      message.includes('exists')
-
-    if (!duplicate) {
-      throw error
-    }
-  }
-}
-
 export async function runOpenClawChatTurn({
   message,
   sessionKey,
-  label = 'Phantom Chat',
 }: {
   message: string
   sessionKey?: string
@@ -149,78 +67,60 @@ export async function runOpenClawChatTurn({
     throw new Error('OPENCLAW_GATEWAY_TOKEN is not configured')
   }
 
-  const GatewayClient = await loadGatewayClient()
   const resolvedSessionKey = sanitizeSessionKey(sessionKey)
-  const runId = randomUUID()
-
-  let resolveFinal: ((payload: GatewayEventPayload) => void) | null = null
-  let rejectFinal: ((reason?: unknown) => void) | null = null
-
-  const finalEvent = new Promise<GatewayEventPayload>((resolve, reject) => {
-    resolveFinal = resolve
-    rejectFinal = reject
-  })
-
-  const client = new GatewayClient({
-    url: DEFAULT_GATEWAY_URL,
-    token,
-    clientName: 'gateway-client',
-    clientVersion: 'aios-hermes-route',
-    platform: 'node',
-    mode: 'backend',
-    role: 'operator',
-    scopes: ['operator.read', 'operator.write'],
-    onEvent: (event) => {
-      if (event.event !== 'chat') return
-      if (event.payload?.runId !== runId) return
-
-      if (
-        event.payload.state === 'final' ||
-        event.payload.state === 'error' ||
-        event.payload.state === 'aborted'
-      ) {
-        resolveFinal?.(event.payload)
-      }
-    },
-  })
-
-  client.start()
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), RESPONSE_TIMEOUT_MS)
 
   try {
-    await ensureSession(client, resolvedSessionKey, label)
-
-    await requestWhenConnected(client, 'chat.send', {
-      sessionKey: resolvedSessionKey,
-      message,
-      thinking: 'minimal',
-      idempotencyKey: runId,
+    const response = await fetch(`${gatewayHttpBaseUrl()}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'x-openclaw-agent-id': 'main',
+        'x-openclaw-model': DEFAULT_MODEL,
+        'x-openclaw-session-key': resolvedSessionKey,
+        'x-openclaw-message-channel': 'webchat',
+      },
+      body: JSON.stringify({
+        model: 'openclaw/default',
+        messages: [{ role: 'user', content: message }],
+        stream: false,
+      }),
+      signal: controller.signal,
     })
 
-    const timeout = setTimeout(() => {
-      rejectFinal?.(new Error('OpenClaw response timed out'))
-    }, RESPONSE_TIMEOUT_MS)
+    const raw = await response.text()
+    let data: ChatCompletionResponse | null = null
 
-    try {
-      const final = await finalEvent
-
-      if (final.state === 'error') {
-        throw new Error(final.errorMessage || 'OpenClaw request failed')
+    if (raw) {
+      try {
+        data = JSON.parse(raw) as ChatCompletionResponse
+      } catch {
+        throw new Error(`OpenClaw returned non-JSON response: ${raw.slice(0, 180)}`)
       }
-
-      if (final.state === 'aborted') {
-        throw new Error('OpenClaw request was aborted')
-      }
-
-      const text = extractGatewayText(final)
-
-      return {
-        sessionKey: resolvedSessionKey,
-        text: text || 'I finished, but no text came back.',
-      }
-    } finally {
-      clearTimeout(timeout)
     }
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error?.message ||
+          `OpenClaw HTTP request failed with status ${response.status}`
+      )
+    }
+
+    const text = extractChoiceText(data?.choices?.[0])
+
+    return {
+      sessionKey: resolvedSessionKey,
+      text: text || 'I finished, but no text came back.',
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('OpenClaw response timed out')
+    }
+
+    throw error
   } finally {
-    await client.stopAndWait({ timeoutMs: 2000 }).catch(() => undefined)
+    clearTimeout(timeout)
   }
 }

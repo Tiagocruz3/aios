@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { runOpenClawChatTurn } from '@/lib/openclaw-gateway'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 type LegacyMessage = {
   role?: string
