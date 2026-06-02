@@ -431,27 +431,6 @@ function AppIcon({ app, onLaunch }: { app: AppDef; onLaunch: (a: AppDef) => void
 }
 
 
-/* ── orb-native live voice ─────────────────────────────────────── */
-type SpeechRecognitionCtor = new () => {
-  continuous: boolean
-  interimResults: boolean
-  lang: string
-  onresult: ((event: { resultIndex?: number; results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }> }) => void) | null
-  onend: (() => void) | null
-  onerror: ((event?: { error?: string }) => void) | null
-  start: () => void
-  stop: () => void
-}
-
-function browserSpeechRecognition(): SpeechRecognitionCtor | null {
-  if (typeof window === 'undefined') return null
-  const speechWindow = window as typeof window & {
-    SpeechRecognition?: SpeechRecognitionCtor
-    webkitSpeechRecognition?: SpeechRecognitionCtor
-  }
-  return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition ?? null
-}
-
 /* ── 3D cube launch transition ──────────────────────────────────── */
 function LaunchTransition({ app }: { app: AppDef }) {
   const Icon = app.icon
@@ -504,13 +483,14 @@ export function Landing() {
   // refs for SVG wire overlay
   const panelRefs = useRef<Array<HTMLButtonElement | null>>(Array(6).fill(null))
   const coreRef   = useRef<HTMLButtonElement | null>(null)
-  const liveRecognitionRef = useRef<InstanceType<SpeechRecognitionCtor> | null>(null)
-  const liveMicPermissionGrantedRef = useRef(false)
+  const liveRecorderRef = useRef<MediaRecorder | null>(null)
+  const liveMicStreamRef = useRef<MediaStream | null>(null)
   const liveThinkingRef = useRef(false)
   const liveVoiceActiveRef = useRef(false)
   const liveVoiceSessionKeyRef = useRef<string | undefined>(undefined)
   const listenCycleRef = useRef(0)
   const listenRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const listenAnimationFrameRef = useRef<number | null>(null)
   // true only on the very first command-centre load this session
   const freshBoot = useRef(false)
 
@@ -568,48 +548,6 @@ export function Landing() {
     launchHref(app.href, app)
   }
 
-
-  const ensureOrbMicrophone = async () => {
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-      setLiveVoiceActive(false)
-      liveVoiceActiveRef.current = false
-      setLiveVoiceStatus('idle')
-      setLiveVoiceLine('This browser does not expose microphone access. Try Chrome or Edge.')
-      return false
-    }
-
-    if (liveMicPermissionGrantedRef.current) return true
-
-    setLiveVoiceActive(true)
-    liveVoiceActiveRef.current = true
-    setLiveVoiceStatus('listening')
-    setLiveVoiceLine('Allow microphone access, then speak to the orb…')
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      })
-      // Only use getUserMedia to trigger/verify permission. Release the stream
-      // immediately so the browser SpeechRecognition engine can own the mic.
-      stream.getTracks().forEach((track) => track.stop())
-      liveMicPermissionGrantedRef.current = true
-      return true
-    } catch (error) {
-      setLiveVoiceActive(false)
-      liveVoiceActiveRef.current = false
-      setLiveVoiceStatus('idle')
-      setLiveVoiceLine(
-        error instanceof DOMException && error.name === 'NotAllowedError'
-          ? 'Microphone permission was denied. Allow mic access in the browser, then tap the orb again.'
-          : 'Microphone could not start. Check browser permissions, then tap the orb again.'
-      )
-      return false
-    }
-  }
 
   const speakFromOrb = (text: string, afterSpeak?: () => void) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -680,20 +618,40 @@ export function Landing() {
     }
   }
 
-  const startOrbListening = () => {
-    const Recognition = browserSpeechRecognition()
-    if (!Recognition) {
+  const transcribeOrbAudio = async (blob: Blob) => {
+    const formData = new FormData()
+    const extension = blob.type.includes('mp4') ? 'm4a' : 'webm'
+    formData.set('audio', blob, `orb-voice.${extension}`)
+
+    const response = await fetch('/api/hermes/transcribe', {
+      method: 'POST',
+      body: formData,
+    })
+    const payload = (await response.json()) as { text?: string; error?: string }
+
+    if (!response.ok || payload.error) {
+      throw new Error(payload.error || 'Transcription failed')
+    }
+
+    return payload.text?.trim() ?? ''
+  }
+
+  const stopOrbRecording = () => {
+    const recorder = liveRecorderRef.current
+    if (recorder && recorder.state !== 'inactive') recorder.stop()
+  }
+
+  const startOrbListening = async () => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
       setLiveVoiceActive(false)
       liveVoiceActiveRef.current = false
-      setLiveVoiceLine('Speech recognition is not available in this browser. Try Chrome or Edge, or use Phantom Chat text.')
+      setLiveVoiceLine('This browser does not expose microphone access. Try Chrome or Edge.')
       setLiveVoiceStatus('idle')
       return
     }
 
-    if (!liveMicPermissionGrantedRef.current) {
-      void ensureOrbMicrophone().then((ok) => {
-        if (ok && liveVoiceActiveRef.current) startOrbListening()
-      })
+    if (liveRecorderRef.current?.state === 'recording') {
+      stopOrbRecording()
       return
     }
 
@@ -701,109 +659,147 @@ export function Landing() {
       clearTimeout(listenRestartTimerRef.current)
       listenRestartTimerRef.current = null
     }
+    if (listenAnimationFrameRef.current !== null) {
+      cancelAnimationFrame(listenAnimationFrameRef.current)
+      listenAnimationFrameRef.current = null
+    }
 
     window.speechSynthesis?.cancel()
-    if (liveRecognitionRef.current) {
-      liveRecognitionRef.current.onend = null
-      liveRecognitionRef.current.onerror = null
-      liveRecognitionRef.current.onresult = null
-      liveRecognitionRef.current.stop()
-    }
-
     const cycle = ++listenCycleRef.current
-    const recognition = new Recognition()
-    liveRecognitionRef.current = recognition
-    recognition.continuous = true
-    recognition.interimResults = true
-    recognition.lang = 'en-AU'
-    const noAudioTimer = setTimeout(() => {
-      clearTimeout(noAudioTimer)
-      if (cycle !== listenCycleRef.current) return
-      if (!liveVoiceActiveRef.current || liveThinkingRef.current) return
-      setLiveVoiceLine('Still listening — speak clearly near the microphone…')
-    }, 6500)
-
-    recognition.onresult = (event) => {
-      if (cycle !== listenCycleRef.current) return
-      const results = Array.from(event.results)
-      const latestResults = results.slice(event.resultIndex ?? 0)
-      const interimTranscript = latestResults
-        .map((result) => result[0]?.transcript ?? '')
-        .join(' ')
-        .trim()
-      const finalTranscript = latestResults
-        .filter((result) => result.isFinal)
-        .map((result) => result[0]?.transcript ?? '')
-        .join(' ')
-        .trim()
-
-      if (interimTranscript) setLiveVoiceLine(`Hearing: ${interimTranscript}`)
-      if (!finalTranscript) return
-
-      clearTimeout(noAudioTimer)
-      recognition.onend = null
-      recognition.onerror = null
-      recognition.onresult = null
-      recognition.stop()
-      void sendOrbVoiceMessage(finalTranscript)
-    }
-    recognition.onend = () => {
-      if (cycle !== listenCycleRef.current) return
-      if (!liveVoiceActiveRef.current || liveThinkingRef.current) return
-
-      // Browsers naturally end speech-recognition sessions after silence.
-      // Keep the orb alive and reopen the mic instead of snapping back to idle.
-      setLiveVoiceStatus('listening')
-      setLiveVoiceLine('Listening…')
-      listenRestartTimerRef.current = setTimeout(() => {
-        if (liveVoiceActiveRef.current && !liveThinkingRef.current) startOrbListening()
-      }, 450)
-    }
-    recognition.onerror = (event) => {
-      clearTimeout(noAudioTimer)
-      if (cycle !== listenCycleRef.current) return
-      const error = event?.error ?? 'unknown'
-
-      if (error === 'no-speech' || error === 'aborted') {
-        setLiveVoiceStatus('listening')
-        setLiveVoiceLine('Listening…')
-        listenRestartTimerRef.current = setTimeout(() => {
-          if (liveVoiceActiveRef.current && !liveThinkingRef.current) startOrbListening()
-        }, 650)
-        return
-      }
-
-      if (error === 'audio-capture' || error === 'network') {
-        setLiveVoiceStatus('listening')
-        setLiveVoiceLine(error === 'audio-capture' ? 'Mic capture paused. Tap the orb again if it does not resume.' : 'Speech service paused. I am retrying…')
-        listenRestartTimerRef.current = setTimeout(() => {
-          if (liveVoiceActiveRef.current && !liveThinkingRef.current) startOrbListening()
-        }, 900)
-        return
-      }
-
-      setLiveVoiceActive(false)
-      liveVoiceActiveRef.current = false
-      setLiveVoiceStatus('idle')
-      setLiveVoiceLine(
-        error === 'not-allowed' || error === 'service-not-allowed'
-          ? 'Microphone permission is blocked. Allow mic access in the browser, then tap the orb again.'
-          : `Mic error: ${error}. Tap the orb to retry.`
-      )
-    }
 
     setLiveVoiceActive(true)
     liveVoiceActiveRef.current = true
     setLiveVoiceStatus('listening')
-    setLiveVoiceLine('Listening…')
+    setLiveVoiceLine('Listening… speak to the orb.')
 
     try {
-      recognition.start()
-    } catch {
-      setLiveVoiceLine('Mic is already starting. Keep speaking or tap the orb again.')
-      setLiveVoiceStatus('listening')
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      })
+      liveMicStreamRef.current = stream
+
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+          ? 'audio/mp4'
+          : ''
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+      liveRecorderRef.current = recorder
+      const chunks: BlobPart[] = []
+      let hasSpeech = false
+      let silenceStartedAt: number | null = null
+      const startedAt = Date.now()
+
+      const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      const audioContext = AudioContextCtor ? new AudioContextCtor() : null
+      const analyser = audioContext?.createAnalyser()
+      const source = audioContext && analyser ? audioContext.createMediaStreamSource(stream) : null
+      const samples = analyser ? new Uint8Array(analyser.fftSize) : null
+
+      if (analyser && source) {
+        analyser.fftSize = 1024
+        source.connect(analyser)
+      }
+
+      const cleanupStream = () => {
+        if (listenAnimationFrameRef.current !== null) {
+          cancelAnimationFrame(listenAnimationFrameRef.current)
+          listenAnimationFrameRef.current = null
+        }
+        stream.getTracks().forEach((track) => track.stop())
+        liveMicStreamRef.current = null
+        void audioContext?.close().catch(() => undefined)
+      }
+
+      const monitor = () => {
+        if (cycle !== listenCycleRef.current || recorder.state !== 'recording') return
+        const elapsed = Date.now() - startedAt
+
+        if (analyser && samples) {
+          analyser.getByteTimeDomainData(samples)
+          let total = 0
+          for (const sample of samples) {
+            const normalized = (sample - 128) / 128
+            total += normalized * normalized
+          }
+          const rms = Math.sqrt(total / samples.length)
+
+          if (rms > 0.018) {
+            hasSpeech = true
+            silenceStartedAt = null
+            setLiveVoiceLine('Hearing you…')
+          } else if (hasSpeech) {
+            silenceStartedAt ??= Date.now()
+            if (Date.now() - silenceStartedAt > 1300 && elapsed > 1800) {
+              stopOrbRecording()
+              return
+            }
+          }
+        }
+
+        if (!hasSpeech && elapsed > 6500) {
+          setLiveVoiceLine('Still listening — speak clearly near the microphone…')
+        }
+        if (elapsed > 14000) {
+          stopOrbRecording()
+          return
+        }
+
+        listenAnimationFrameRef.current = requestAnimationFrame(monitor)
+      }
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunks.push(event.data)
+      }
+      recorder.onerror = () => {
+        cleanupStream()
+        setLiveVoiceStatus('idle')
+        setLiveVoiceLine('Mic recording failed. Tap the orb to retry.')
+      }
+      recorder.onstop = () => {
+        cleanupStream()
+        if (cycle !== listenCycleRef.current || !liveVoiceActiveRef.current) return
+
+        const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' })
+        if (!blob.size || !hasSpeech) {
+          setLiveVoiceStatus('listening')
+          setLiveVoiceLine('I did not catch that. Tap the orb and speak again.')
+          return
+        }
+
+        setLiveVoiceStatus('thinking')
+        setLiveVoiceLine('Transcribing…')
+        void transcribeOrbAudio(blob)
+          .then((transcript) => {
+            if (!transcript) throw new Error('No speech was detected.')
+            setLiveVoiceLine(`You: ${transcript}`)
+            return sendOrbVoiceMessage(transcript)
+          })
+          .catch((error) => {
+            const message = error instanceof Error ? error.message : 'Transcription failed'
+            setLiveVoiceLine(`Audio error: ${message}`)
+            speakFromOrb('I could not transcribe that audio. Tap the orb and try again.')
+          })
+      }
+
+      recorder.start(250)
+      listenAnimationFrameRef.current = requestAnimationFrame(monitor)
+    } catch (error) {
+      setLiveVoiceActive(false)
+      liveVoiceActiveRef.current = false
+      setLiveVoiceStatus('idle')
+      setLiveVoiceLine(
+        error instanceof DOMException && error.name === 'NotAllowedError'
+          ? 'Microphone permission was denied. Allow mic access in the browser, then tap the orb again.'
+          : 'Microphone could not start. Check browser permissions, then tap the orb again.'
+      )
     }
   }
+
 
   const launchLiveVoiceFromOrb = async () => {
     if (launching) return
@@ -813,23 +809,21 @@ export function Landing() {
     setLiveVoiceStatus('listening')
     setLiveVoiceLine('Starting microphone…')
 
-    const micReady = await ensureOrbMicrophone()
-    if (!micReady) return
-
-    setLiveVoiceLine('Brainiac online. Listening…')
     if (!liveVoiceActive) {
-      speakFromOrb('Brainiac online. Live voice link active.', () => startOrbListening())
+      speakFromOrb('Brainiac online. Live voice link active.', () => { void startOrbListening() })
       return
     }
 
-    startOrbListening()
+    await startOrbListening()
   }
 
   useEffect(() => {
     return () => {
       if (listenRestartTimerRef.current) clearTimeout(listenRestartTimerRef.current)
+      if (listenAnimationFrameRef.current !== null) cancelAnimationFrame(listenAnimationFrameRef.current)
       liveVoiceActiveRef.current = false
-      liveRecognitionRef.current?.stop()
+      if (liveRecorderRef.current?.state === 'recording') liveRecorderRef.current.stop()
+      liveMicStreamRef.current?.getTracks().forEach((track) => track.stop())
       if (typeof window !== 'undefined') window.speechSynthesis?.cancel()
     }
   }, [])
