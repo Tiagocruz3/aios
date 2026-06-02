@@ -436,7 +436,7 @@ type SpeechRecognitionCtor = new () => {
   continuous: boolean
   interimResults: boolean
   lang: string
-  onresult: ((event: { results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }> }) => void) | null
+  onresult: ((event: { resultIndex?: number; results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }> }) => void) | null
   onend: (() => void) | null
   onerror: ((event?: { error?: string }) => void) | null
   start: () => void
@@ -505,7 +505,7 @@ export function Landing() {
   const panelRefs = useRef<Array<HTMLButtonElement | null>>(Array(6).fill(null))
   const coreRef   = useRef<HTMLButtonElement | null>(null)
   const liveRecognitionRef = useRef<InstanceType<SpeechRecognitionCtor> | null>(null)
-  const liveMicStreamRef = useRef<MediaStream | null>(null)
+  const liveMicPermissionGrantedRef = useRef(false)
   const liveThinkingRef = useRef(false)
   const liveVoiceActiveRef = useRef(false)
   const liveVoiceSessionKeyRef = useRef<string | undefined>(undefined)
@@ -578,10 +578,7 @@ export function Landing() {
       return false
     }
 
-    const existingStream = liveMicStreamRef.current
-    if (existingStream?.active && existingStream.getAudioTracks().some((track) => track.readyState === 'live')) {
-      return true
-    }
+    if (liveMicPermissionGrantedRef.current) return true
 
     setLiveVoiceActive(true)
     liveVoiceActiveRef.current = true
@@ -596,7 +593,10 @@ export function Landing() {
           autoGainControl: true,
         },
       })
-      liveMicStreamRef.current = stream
+      // Only use getUserMedia to trigger/verify permission. Release the stream
+      // immediately so the browser SpeechRecognition engine can own the mic.
+      stream.getTracks().forEach((track) => track.stop())
+      liveMicPermissionGrantedRef.current = true
       return true
     } catch (error) {
       setLiveVoiceActive(false)
@@ -690,8 +690,7 @@ export function Landing() {
       return
     }
 
-    const stream = liveMicStreamRef.current
-    if (!stream?.active || !stream.getAudioTracks().some((track) => track.readyState === 'live')) {
+    if (!liveMicPermissionGrantedRef.current) {
       void ensureOrbMicrophone().then((ok) => {
         if (ok && liveVoiceActiveRef.current) startOrbListening()
       })
@@ -715,21 +714,38 @@ export function Landing() {
     const recognition = new Recognition()
     liveRecognitionRef.current = recognition
     recognition.continuous = true
-    recognition.interimResults = false
+    recognition.interimResults = true
     recognition.lang = 'en-AU'
+    const noAudioTimer = setTimeout(() => {
+      clearTimeout(noAudioTimer)
+      if (cycle !== listenCycleRef.current) return
+      if (!liveVoiceActiveRef.current || liveThinkingRef.current) return
+      setLiveVoiceLine('Still listening — speak clearly near the microphone…')
+    }, 6500)
+
     recognition.onresult = (event) => {
       if (cycle !== listenCycleRef.current) return
-      const transcript = Array.from(event.results)
+      const results = Array.from(event.results)
+      const latestResults = results.slice(event.resultIndex ?? 0)
+      const interimTranscript = latestResults
         .map((result) => result[0]?.transcript ?? '')
         .join(' ')
         .trim()
-      if (!transcript) return
+      const finalTranscript = latestResults
+        .filter((result) => result.isFinal)
+        .map((result) => result[0]?.transcript ?? '')
+        .join(' ')
+        .trim()
 
+      if (interimTranscript) setLiveVoiceLine(`Hearing: ${interimTranscript}`)
+      if (!finalTranscript) return
+
+      clearTimeout(noAudioTimer)
       recognition.onend = null
       recognition.onerror = null
       recognition.onresult = null
       recognition.stop()
-      void sendOrbVoiceMessage(transcript)
+      void sendOrbVoiceMessage(finalTranscript)
     }
     recognition.onend = () => {
       if (cycle !== listenCycleRef.current) return
@@ -744,6 +760,7 @@ export function Landing() {
       }, 450)
     }
     recognition.onerror = (event) => {
+      clearTimeout(noAudioTimer)
       if (cycle !== listenCycleRef.current) return
       const error = event?.error ?? 'unknown'
 
@@ -813,8 +830,6 @@ export function Landing() {
       if (listenRestartTimerRef.current) clearTimeout(listenRestartTimerRef.current)
       liveVoiceActiveRef.current = false
       liveRecognitionRef.current?.stop()
-      liveMicStreamRef.current?.getTracks().forEach((track) => track.stop())
-      liveMicStreamRef.current = null
       if (typeof window !== 'undefined') window.speechSynthesis?.cancel()
     }
   }, [])
