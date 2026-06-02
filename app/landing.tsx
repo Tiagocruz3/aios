@@ -438,7 +438,7 @@ type SpeechRecognitionCtor = new () => {
   lang: string
   onresult: ((event: { results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }> }) => void) | null
   onend: (() => void) | null
-  onerror: (() => void) | null
+  onerror: ((event?: { error?: string }) => void) | null
   start: () => void
   stop: () => void
 }
@@ -506,6 +506,10 @@ export function Landing() {
   const coreRef   = useRef<HTMLButtonElement | null>(null)
   const liveRecognitionRef = useRef<InstanceType<SpeechRecognitionCtor> | null>(null)
   const liveThinkingRef = useRef(false)
+  const liveVoiceActiveRef = useRef(false)
+  const liveVoiceSessionKeyRef = useRef<string | undefined>(undefined)
+  const listenCycleRef = useRef(0)
+  const listenRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // true only on the very first command-centre load this session
   const freshBoot = useRef(false)
 
@@ -543,6 +547,14 @@ export function Landing() {
     return () => clearTimeout(t)
   }, [bootLine, bootLines.length])
 
+  useEffect(() => {
+    liveVoiceActiveRef.current = liveVoiceActive
+  }, [liveVoiceActive])
+
+  useEffect(() => {
+    liveVoiceSessionKeyRef.current = liveVoiceSessionKey
+  }, [liveVoiceSessionKey])
+
   const launchHref = (href: string, app: AppDef) => {
     if (launching) return
     setLaunching(app)
@@ -574,12 +586,18 @@ export function Landing() {
       null
     utterance.onstart = () => setLiveVoiceStatus('speaking')
     utterance.onend = () => {
-      setLiveVoiceStatus('idle')
-      afterSpeak?.()
+      if (afterSpeak) {
+        afterSpeak()
+      } else {
+        setLiveVoiceStatus(liveVoiceActiveRef.current ? 'listening' : 'idle')
+      }
     }
     utterance.onerror = () => {
-      setLiveVoiceStatus('idle')
-      afterSpeak?.()
+      if (afterSpeak) {
+        afterSpeak()
+      } else {
+        setLiveVoiceStatus(liveVoiceActiveRef.current ? 'listening' : 'idle')
+      }
     }
     window.speechSynthesis.speak(utterance)
   }
@@ -596,7 +614,7 @@ export function Landing() {
       const response = await fetch('/api/hermes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: clean, sessionKey: liveVoiceSessionKey }),
+        body: JSON.stringify({ message: clean, sessionKey: liveVoiceSessionKeyRef.current }),
       })
       const payload = (await response.json()) as { text?: string; error?: string; sessionKey?: string }
 
@@ -612,7 +630,7 @@ export function Landing() {
       const failure = error instanceof Error ? error.message : 'Unexpected live voice error'
       const reply = `Live link error: ${failure}`
       setLiveVoiceLine(reply)
-      speakFromOrb('The live link returned an error. I am still here on the orb.', () => setLiveVoiceStatus('idle'))
+      speakFromOrb('The live link returned an error. I am still here on the orb.', () => startOrbListening())
     } finally {
       liveThinkingRef.current = false
     }
@@ -621,43 +639,101 @@ export function Landing() {
   const startOrbListening = () => {
     const Recognition = browserSpeechRecognition()
     if (!Recognition) {
-      setLiveVoiceLine('Speech recognition is not available in this browser.')
+      setLiveVoiceActive(false)
+      liveVoiceActiveRef.current = false
+      setLiveVoiceLine('Speech recognition is not available in this browser. Try Chrome or Edge, or use Phantom Chat text.')
       setLiveVoiceStatus('idle')
       return
     }
 
-    window.speechSynthesis?.cancel()
-    liveRecognitionRef.current?.stop()
+    if (listenRestartTimerRef.current) {
+      clearTimeout(listenRestartTimerRef.current)
+      listenRestartTimerRef.current = null
+    }
 
+    window.speechSynthesis?.cancel()
+    if (liveRecognitionRef.current) {
+      liveRecognitionRef.current.onend = null
+      liveRecognitionRef.current.onerror = null
+      liveRecognitionRef.current.onresult = null
+      liveRecognitionRef.current.stop()
+    }
+
+    const cycle = ++listenCycleRef.current
     const recognition = new Recognition()
     liveRecognitionRef.current = recognition
-    recognition.continuous = false
+    recognition.continuous = true
     recognition.interimResults = false
     recognition.lang = 'en-AU'
     recognition.onresult = (event) => {
+      if (cycle !== listenCycleRef.current) return
       const transcript = Array.from(event.results)
         .map((result) => result[0]?.transcript ?? '')
         .join(' ')
         .trim()
-      if (transcript) void sendOrbVoiceMessage(transcript)
+      if (!transcript) return
+
+      recognition.onend = null
+      recognition.onerror = null
+      recognition.onresult = null
+      recognition.stop()
+      void sendOrbVoiceMessage(transcript)
     }
     recognition.onend = () => {
-      if (!liveThinkingRef.current) setLiveVoiceStatus('idle')
+      if (cycle !== listenCycleRef.current) return
+      if (!liveVoiceActiveRef.current || liveThinkingRef.current) return
+
+      // Browsers naturally end speech-recognition sessions after silence.
+      // Keep the orb alive and reopen the mic instead of snapping back to idle.
+      setLiveVoiceStatus('listening')
+      setLiveVoiceLine('Listening…')
+      listenRestartTimerRef.current = setTimeout(() => {
+        if (liveVoiceActiveRef.current && !liveThinkingRef.current) startOrbListening()
+      }, 450)
     }
-    recognition.onerror = () => setLiveVoiceStatus('idle')
+    recognition.onerror = (event) => {
+      if (cycle !== listenCycleRef.current) return
+      const error = event?.error ?? 'unknown'
+
+      if (error === 'no-speech' || error === 'aborted') {
+        setLiveVoiceStatus('listening')
+        setLiveVoiceLine('Listening…')
+        listenRestartTimerRef.current = setTimeout(() => {
+          if (liveVoiceActiveRef.current && !liveThinkingRef.current) startOrbListening()
+        }, 650)
+        return
+      }
+
+      setLiveVoiceActive(false)
+      liveVoiceActiveRef.current = false
+      setLiveVoiceStatus('idle')
+      setLiveVoiceLine(
+        error === 'not-allowed' || error === 'service-not-allowed'
+          ? 'Microphone permission is blocked. Allow mic access, then tap the orb again.'
+          : `Mic error: ${error}. Tap the orb to retry.`
+      )
+    }
 
     setLiveVoiceActive(true)
+    liveVoiceActiveRef.current = true
     setLiveVoiceStatus('listening')
     setLiveVoiceLine('Listening…')
-    recognition.start()
+
+    try {
+      recognition.start()
+    } catch {
+      setLiveVoiceLine('Mic is already starting. Keep speaking or tap the orb again.')
+      setLiveVoiceStatus('listening')
+    }
   }
 
   const launchLiveVoiceFromOrb = () => {
     if (launching) return
 
     setLiveVoiceActive(true)
+    liveVoiceActiveRef.current = true
     setLiveVoiceLine('Brainiac online. Listening…')
-    if (!liveVoiceActive) {
+    if (!liveVoiceActiveRef.current || !liveVoiceActive) {
       speakFromOrb('Brainiac online. Live voice link active.', () => startOrbListening())
       return
     }
@@ -667,6 +743,8 @@ export function Landing() {
 
   useEffect(() => {
     return () => {
+      if (listenRestartTimerRef.current) clearTimeout(listenRestartTimerRef.current)
+      liveVoiceActiveRef.current = false
       liveRecognitionRef.current?.stop()
       if (typeof window !== 'undefined') window.speechSynthesis?.cancel()
     }
