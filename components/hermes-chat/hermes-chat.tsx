@@ -1,36 +1,51 @@
 'use client'
 
-import { useChat } from '@ai-sdk/react'
-import { DefaultChatTransport } from 'ai'
-import { Streamdown } from 'streamdown'
 import {
   ArrowUpIcon,
   SquareIcon,
   SparklesIcon,
   PlusIcon,
-  AtomIcon,
+  RadioIcon,
 } from 'lucide-react'
+import { Streamdown } from 'streamdown'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 const SUGGESTIONS = [
-  'Explain quantum entanglement in simple terms',
-  'Write a haiku about late-night coding',
-  'Draft a product launch announcement',
-  'Help me plan a 3-day trip to Tokyo',
+  'Give me a clean summary of what is happening across my OpenClaw setup.',
+  'Help me plan the next steps for wiring this dashboard into OpenClaw.',
+  'Draft a short status update I can send about this project.',
+  'What should I fix first to make the tunnel and frontend more reliable?',
 ]
+
+const SESSION_STORAGE_KEY = 'phantom-chat-session-key'
+
+type ChatMessage = {
+  id: string
+  role: 'user' | 'assistant'
+  text: string
+}
 
 export function HermesChat({ className }: { className?: string }) {
   const [input, setInput] = useState('')
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [status, setStatus] = useState<'idle' | 'submitted'>('idle')
+  const [sessionKey, setSessionKey] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
-  const { messages, sendMessage, status, stop, setMessages } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/hermes' }),
-  })
-
-  const isLoading = status === 'streaming' || status === 'submitted'
+  const isLoading = status === 'submitted'
   const isEmpty = messages.length === 0
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(SESSION_STORAGE_KEY)
+    if (stored) setSessionKey(stored)
+  }, [])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, status])
 
   const adjustHeight = useCallback(() => {
     const el = textareaRef.current
@@ -39,36 +54,106 @@ export function HermesChat({ className }: { className?: string }) {
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`
   }, [])
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  const resetComposer = useCallback(() => {
+    setInput('')
+    requestAnimationFrame(() => {
+      if (textareaRef.current) textareaRef.current.style.height = 'auto'
+    })
+  }, [])
+
+  const clearConversation = useCallback(() => {
+    abortRef.current?.abort()
+    abortRef.current = null
+    setStatus('idle')
+    setMessages([])
+    setSessionKey(null)
+    window.localStorage.removeItem(SESSION_STORAGE_KEY)
+  }, [])
 
   const submit = useCallback(
-    (text: string) => {
+    async (text: string) => {
       const value = text.trim()
       if (!value || isLoading) return
-      sendMessage({ text: value })
-      setInput('')
-      requestAnimationFrame(() => {
-        if (textareaRef.current) textareaRef.current.style.height = 'auto'
-      })
+
+      const controller = new AbortController()
+      abortRef.current = controller
+
+      setMessages((current) => [
+        ...current,
+        { id: crypto.randomUUID(), role: 'user', text: value },
+      ])
+      setStatus('submitted')
+      resetComposer()
+
+      try {
+        const response = await fetch('/api/hermes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: value, sessionKey }),
+          signal: controller.signal,
+        })
+
+        const payload = (await response.json()) as {
+          error?: string
+          text?: string
+          sessionKey?: string
+        }
+
+        if (!response.ok) {
+          throw new Error(payload.error || 'Phantom Chat failed')
+        }
+
+        if (payload.sessionKey) {
+          setSessionKey(payload.sessionKey)
+          window.localStorage.setItem(SESSION_STORAGE_KEY, payload.sessionKey)
+        }
+
+        setMessages((current) => [
+          ...current,
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            text: payload.text || 'I finished, but nothing came back.',
+          },
+        ])
+      } catch (error) {
+        if (controller.signal.aborted) return
+
+        const message =
+          error instanceof Error ? error.message : 'Unexpected Phantom Chat error'
+
+        setMessages((current) => [
+          ...current,
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            text: `Error: ${message}`,
+          },
+        ])
+      } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null
+        }
+        setStatus('idle')
+      }
     },
-    [isLoading, sendMessage]
+    [isLoading, resetComposer, sessionKey]
   )
 
   return (
     <div className={cn('flex flex-col h-full w-full min-h-0 holo-surface', className)}>
-      {/* top bar */}
       <div className="flex items-center gap-2 px-5 h-11 flex-shrink-0 border-b border-white/8">
-        <AtomIcon className="w-4 h-4 text-cyan-400" strokeWidth={1.5} />
+        <RadioIcon className="w-4 h-4 text-cyan-400" strokeWidth={1.5} />
         <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-200">
-          Hermes
+          Phantom
         </span>
-        <span className="text-[10px] font-mono text-slate-600">hermes-agent</span>
+        <span className="text-[10px] font-mono text-slate-600">
+          openclaw gateway
+        </span>
         {!isEmpty && (
           <button
             type="button"
-            onClick={() => setMessages([])}
+            onClick={clearConversation}
             className="ml-auto flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11px] font-mono text-slate-400 border border-white/10 bg-white/[0.03] hover:text-cyan-200 hover:border-cyan-400/30 transition-all"
           >
             <PlusIcon className="w-3.5 h-3.5" />
@@ -77,7 +162,6 @@ export function HermesChat({ className }: { className?: string }) {
         )}
       </div>
 
-      {/* conversation */}
       <div className="flex-1 min-h-0 overflow-auto">
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center h-full gap-6 px-6 text-center">
@@ -86,21 +170,21 @@ export function HermesChat({ className }: { className?: string }) {
             </div>
             <div>
               <h1 className="text-xl font-mono font-semibold text-slate-100">
-                How can I help you today?
+                Phantom Chat is online.
               </h1>
               <p className="text-xs font-mono text-slate-500 mt-2">
-                Connected to the Hermes bridge
+                This panel now talks to your OpenClaw gateway instead of the old Hermes bridge.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-xl">
-              {SUGGESTIONS.map((s) => (
+              {SUGGESTIONS.map((suggestion) => (
                 <button
-                  key={s}
+                  key={suggestion}
                   type="button"
-                  onClick={() => submit(s)}
+                  onClick={() => submit(suggestion)}
                   className="text-left text-xs font-mono px-3.5 py-3 rounded-xl border border-white/8 bg-white/[0.02] text-slate-400 hover:text-cyan-100 hover:border-cyan-400/30 hover:bg-cyan-400/[0.04] transition-all"
                 >
-                  {s}
+                  {suggestion}
                 </button>
               ))}
             </div>
@@ -110,10 +194,10 @@ export function HermesChat({ className }: { className?: string }) {
             {messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))}
-            {status === 'submitted' && (
+            {isLoading && (
               <div className="flex items-center gap-2 text-xs font-mono text-cyan-300/70 px-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                Hermes is thinking…
+                Phantom is thinking…
               </div>
             )}
             <div ref={bottomRef} />
@@ -121,31 +205,30 @@ export function HermesChat({ className }: { className?: string }) {
         )}
       </div>
 
-      {/* composer */}
       <div className="flex-shrink-0 border-t border-white/8 p-4">
         <div className="mx-auto max-w-3xl">
           <div className="flex items-end gap-2 rounded-2xl border border-cyan-500/15 bg-black/40 px-3 py-2.5 focus-within:border-cyan-400/40 transition-colors">
             <textarea
               ref={textareaRef}
               value={input}
-              onChange={(e) => {
-                setInput(e.target.value)
+              onChange={(event) => {
+                setInput(event.target.value)
                 adjustHeight()
               }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault()
                   submit(input)
                 }
               }}
               rows={1}
-              placeholder="Message Hermes…"
+              placeholder="Message Phantom…"
               className="flex-1 resize-none bg-transparent font-mono text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none leading-relaxed py-1 max-h-[200px]"
             />
             {isLoading ? (
               <button
                 type="button"
-                onClick={stop}
+                onClick={() => abortRef.current?.abort()}
                 title="Stop"
                 className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-700 text-slate-200 hover:bg-slate-600 transition-all flex-shrink-0"
               >
@@ -169,7 +252,7 @@ export function HermesChat({ className }: { className?: string }) {
             )}
           </div>
           <p className="text-center text-[10px] font-mono text-slate-700 mt-2">
-            Hermes can make mistakes. Verify important information.
+            Phantom can still make mistakes. Verify important information.
           </p>
         </div>
       </div>
@@ -177,22 +260,12 @@ export function HermesChat({ className }: { className?: string }) {
   )
 }
 
-/* ── single message ─────────────────────────────────────────────── */
-function MessageBubble({
-  message,
-}: {
-  message: { id: string; role: string; parts: Array<{ type: string; text?: string }> }
-}) {
-  const text = message.parts
-    .filter((p) => p.type === 'text')
-    .map((p) => p.text ?? '')
-    .join('')
-
+function MessageBubble({ message }: { message: ChatMessage }) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
         <div className="max-w-[85%] text-sm font-mono px-4 py-2.5 rounded-2xl rounded-br-md bg-cyan-400/10 border border-cyan-400/20 text-slate-100 whitespace-pre-wrap leading-relaxed">
-          {text}
+          {message.text}
         </div>
       </div>
     )
@@ -201,10 +274,10 @@ function MessageBubble({
   return (
     <div className="flex gap-3">
       <div className="flex items-center justify-center w-7 h-7 rounded-lg border border-cyan-400/25 bg-cyan-400/[0.06] flex-shrink-0 mt-0.5">
-        <AtomIcon className="w-3.5 h-3.5 text-cyan-300" strokeWidth={1.5} />
+        <RadioIcon className="w-3.5 h-3.5 text-cyan-300" strokeWidth={1.5} />
       </div>
       <div className="flex-1 min-w-0 text-sm text-slate-200 leading-relaxed pt-0.5 hermes-prose">
-        <Streamdown>{text}</Streamdown>
+        <Streamdown>{message.text}</Streamdown>
       </div>
     </div>
   )

@@ -1,64 +1,67 @@
-import {
-  convertToModelMessages,
-  streamText,
-  type ToolSet,
-  type UIMessage,
-} from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
 import { NextResponse } from 'next/server'
-import { getN8nTools } from '@/lib/n8n-mcp'
+import { runOpenClawChatTurn } from '@/lib/openclaw-gateway'
 
-/* Hermes Chat proxy.
+export const runtime = 'nodejs'
 
-   Talks to the Hermes bridge — an OpenAI-compatible endpoint — so the
-   browser never sees the connection details. Configure via env:
-
-     HERMES_BASE_URL   default: https://hermes-bridge-beta.vercel.app/v1
-     HERMES_MODEL      default: hermes-agent
-     HERMES_API_KEY    any string (the bridge strips it); default: hermes
-
-   The route streams responses back to the client using the AI SDK UI
-   message stream, the same wire format the Helix coder chat uses. */
-
-const BASE_URL = process.env.HERMES_BASE_URL || 'https://hermes-bridge-beta.vercel.app/v1'
-const MODEL = process.env.HERMES_MODEL || 'hermes-agent'
-const API_KEY = process.env.HERMES_API_KEY || 'hermes'
+type LegacyMessage = {
+  role?: string
+  parts?: Array<{ type?: string; text?: string }>
+}
 
 interface BodyData {
-  messages: UIMessage[]
+  message?: string
+  sessionKey?: string
+  messages?: LegacyMessage[]
+}
+
+function extractMessage(body: BodyData) {
+  if (typeof body.message === 'string' && body.message.trim()) {
+    return body.message.trim()
+  }
+
+  if (!Array.isArray(body.messages)) return ''
+
+  const latestUserMessage = [...body.messages]
+    .reverse()
+    .find((message) => message.role === 'user')
+
+  if (!latestUserMessage?.parts) return ''
+
+  return latestUserMessage.parts
+    .filter((part) => part.type === 'text' && typeof part.text === 'string')
+    .map((part) => part.text?.trim() ?? '')
+    .filter(Boolean)
+    .join('\n\n')
 }
 
 export async function POST(req: Request) {
   let body: BodyData
+
   try {
     body = (await req.json()) as BodyData
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { messages } = body
-  if (!Array.isArray(messages)) {
-    return NextResponse.json({ error: 'messages is required' }, { status: 400 })
+  const message = extractMessage(body)
+
+  if (!message) {
+    return NextResponse.json(
+      { error: 'A message is required.' },
+      { status: 400 }
+    )
   }
 
-  const hermes = createOpenAI({
-    baseURL: BASE_URL,
-    apiKey: API_KEY,
-  })
+  try {
+    const result = await runOpenClawChatTurn({
+      message,
+      sessionKey: body.sessionKey,
+    })
 
-  const { tools: n8nTools, close: closeN8n } = await getN8nTools()
+    return NextResponse.json(result)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
 
-  const result = streamText({
-    model: hermes.chat(MODEL),
-    messages: await convertToModelMessages(messages),
-    ...(Object.keys(n8nTools).length ? { tools: n8nTools as ToolSet } : {}),
-    onFinish: closeN8n,
-    onError: (error) => {
-      console.error('Hermes bridge error')
-      console.error(JSON.stringify(error, null, 2))
-    },
-  })
-
-  result.consumeStream()
-  return result.toUIMessageStreamResponse()
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }
