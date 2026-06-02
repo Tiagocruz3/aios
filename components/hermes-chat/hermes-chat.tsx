@@ -9,7 +9,6 @@ import {
 } from 'lucide-react'
 import { Streamdown } from 'streamdown'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
 const SUGGESTIONS = [
@@ -35,8 +34,6 @@ export function HermesChat({ className }: { className?: string }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
-  const searchParams = useSearchParams()
-  const orbStartedRef = useRef(false)
 
   const isLoading = status === 'submitted'
   const isEmpty = messages.length === 0
@@ -142,16 +139,6 @@ export function HermesChat({ className }: { className?: string }) {
     },
     [isLoading, resetComposer, sessionKey]
   )
-
-
-  useEffect(() => {
-    if (orbStartedRef.current) return
-    if (searchParams.get('start') !== 'orb') return
-    if (messages.length > 0 || isLoading) return
-
-    orbStartedRef.current = true
-    void submit('Open Phantom Chat from the command-center orb. Give me a brief ready status and wait for my next instruction.')
-  }, [isLoading, messages.length, searchParams, submit])
 
   return (
     <div className={cn('flex flex-col h-full w-full min-h-0 holo-surface', className)}>

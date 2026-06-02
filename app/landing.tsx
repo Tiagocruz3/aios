@@ -6,6 +6,7 @@ import {
   ZapIcon, GitBranchIcon, CloudIcon, DatabaseIcon,
   VideoIcon, BrainCircuitIcon, LockIcon,
   WifiIcon, CpuIcon, CircleIcon, LayersIcon, AtomIcon, CalendarIcon,
+  MicIcon, SendIcon, XIcon, Volume2Icon,
 } from 'lucide-react'
 
 /* ── clock ─────────────────────────────────────────────────────── */
@@ -33,30 +34,48 @@ function useMeter(base: number, swing: number, speed = 2200) {
 }
 
 /* ── reactor core SVG ───────────────────────────────────────────── */
+type LiveVoiceStatus = 'idle' | 'listening' | 'speaking' | 'thinking'
+
 function ReactorCore({
   divRef,
   onLaunchChat,
+  liveStatus,
 }: {
   divRef: React.Ref<HTMLButtonElement>
   onLaunchChat: () => void
+  liveStatus: LiveVoiceStatus
 }) {
   const spin = (s: number, rev = false) => ({
     transformBox: 'fill-box' as const,
     transformOrigin: 'center' as const,
     animation: `spin ${s}s linear infinite${rev ? ' reverse' : ''}`,
   })
+  const isListening = liveStatus === 'listening'
+  const isSpeaking = liveStatus === 'speaking'
+  const isThinking = liveStatus === 'thinking'
+  const isLive = liveStatus !== 'idle'
+
   return (
     <button
       ref={divRef}
       type="button"
       onClick={onLaunchChat}
-      aria-label="Open Phantom Chat"
-      className="relative flex items-center justify-center w-[280px] h-[280px] sm:w-[360px] sm:h-[360px] rounded-full cursor-pointer transition-transform duration-300 hover:scale-[1.025] focus:outline-none focus:ring-2 focus:ring-cyan-300/50"
+      aria-label="Start Brainiac live voice chat"
+      data-live-status={liveStatus}
+      className="relative flex items-center justify-center w-[280px] h-[280px] sm:w-[360px] sm:h-[360px] rounded-full cursor-pointer transition-transform duration-300 hover:scale-[1.025] focus:outline-none focus:ring-2 focus:ring-cyan-300/50 data-[live-status=thinking]:scale-[1.015] data-[live-status=listening]:scale-[1.025] data-[live-status=speaking]:scale-[1.04]"
     >
       <svg
         viewBox="0 0 240 240"
         className="w-full h-full text-cyan-300"
-        style={{ filter: 'drop-shadow(0 0 16px rgba(0,190,255,0.4))' }}
+        style={{
+          filter: isSpeaking
+            ? 'drop-shadow(0 0 30px rgba(0,230,255,0.9)) drop-shadow(0 0 70px rgba(0,130,255,0.35))'
+            : isListening
+              ? 'drop-shadow(0 0 24px rgba(0,230,255,0.75)) drop-shadow(0 0 52px rgba(0,220,255,0.25))'
+              : isThinking
+                ? 'drop-shadow(0 0 24px rgba(168,85,247,0.6)) drop-shadow(0 0 58px rgba(0,220,255,0.22))'
+                : 'drop-shadow(0 0 16px rgba(0,190,255,0.4))',
+        }}
       >
         <defs>
           <radialGradient id="coreGlow" cx="50%" cy="42%" r="58%">
@@ -66,6 +85,37 @@ function ReactorCore({
             <stop offset="100%" stopColor="rgba(0,155,225,0)" />
           </radialGradient>
         </defs>
+
+        {isLive && (
+          <g aria-hidden="true">
+            <circle cx="120" cy="120" r="118" fill="none"
+              stroke={isThinking ? 'rgba(192,132,252,0.72)' : 'rgba(103,232,249,0.72)'}
+              strokeWidth="1.5" strokeDasharray={isSpeaking ? '8 10' : '2 8'}>
+              <animate attributeName="opacity" values="0.15;0.78;0.15" dur={isSpeaking ? '0.85s' : isListening ? '1.35s' : '1.05s'} repeatCount="indefinite" />
+            </circle>
+            <circle cx="120" cy="120" r="36" fill="none" stroke="rgba(255,255,255,0.42)" strokeWidth="1">
+              <animate attributeName="r" values={isSpeaking ? '35;48;35' : isListening ? '35;42;35' : '35;45;35'} dur={isSpeaking ? '0.55s' : '1.1s'} repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.2;0.85;0.2" dur={isSpeaking ? '0.55s' : '1.1s'} repeatCount="indefinite" />
+            </circle>
+            {isSpeaking && [54, 72, 90].map((radius, index) => (
+              <circle key={radius} cx="120" cy="120" r={radius} fill="none" stroke="rgba(34,211,238,0.55)" strokeWidth="1.25">
+                <animate attributeName="r" values={`${radius};${radius + 14};${radius}`} dur={`${0.72 + index * 0.12}s`} repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.1;0.72;0.1" dur={`${0.72 + index * 0.12}s`} repeatCount="indefinite" />
+              </circle>
+            ))}
+            {isListening && (
+              <circle cx="120" cy="120" r="104" fill="none" stroke="rgba(125,249,255,0.75)" strokeWidth="4" strokeLinecap="round" strokeDasharray="18 22">
+                <animateTransform attributeName="transform" type="rotate" from="0 120 120" to="360 120 120" dur="4.2s" repeatCount="indefinite" />
+                <animate attributeName="stroke-opacity" values="0.25;0.9;0.25" dur="1.25s" repeatCount="indefinite" />
+              </circle>
+            )}
+            {isThinking && (
+              <circle cx="120" cy="120" r="68" fill="none" stroke="rgba(192,132,252,0.65)" strokeWidth="3" strokeLinecap="round" strokeDasharray="36 128">
+                <animateTransform attributeName="transform" type="rotate" from="0 120 120" to="360 120 120" dur="1.4s" repeatCount="indefinite" />
+              </circle>
+            )}
+          </g>
+        )}
 
         {/* outermost hairline tick ring */}
         <g style={spin(72)}>
@@ -133,8 +183,8 @@ function ReactorCore({
         </g>
 
         {/* pulsing centre */}
-        <circle cx="120" cy="120" r="5" fill="#fff"
-          style={{ animation: 'orb-breathe 3s ease-in-out infinite',
+        <circle cx="120" cy="120" r={isSpeaking ? '7' : isListening ? '6.5' : '5'} fill="#fff"
+          style={{ animation: isSpeaking ? 'orb-breathe 0.62s ease-in-out infinite' : isListening ? 'orb-breathe 1.1s ease-in-out infinite' : 'orb-breathe 3s ease-in-out infinite',
                    transformBox: 'fill-box', transformOrigin: 'center' }} />
       </svg>
     </button>
@@ -380,6 +430,245 @@ function AppIcon({ app, onLaunch }: { app: AppDef; onLaunch: (a: AppDef) => void
   )
 }
 
+
+/* ── live voice overlay ─────────────────────────────────────────── */
+type LiveVoiceMessage = { role: 'user' | 'assistant' | 'system'; text: string }
+
+type SpeechRecognitionCtor = new () => {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  onresult: ((event: { results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }> }) => void) | null
+  onend: (() => void) | null
+  onerror: (() => void) | null
+  start: () => void
+  stop: () => void
+}
+
+function browserSpeechRecognition(): SpeechRecognitionCtor | null {
+  if (typeof window === 'undefined') return null
+  const speechWindow = window as typeof window & {
+    SpeechRecognition?: SpeechRecognitionCtor
+    webkitSpeechRecognition?: SpeechRecognitionCtor
+  }
+  return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition ?? null
+}
+
+function LiveVoiceOverlay({
+  open,
+  onClose,
+  onStatusChange,
+}: {
+  open: boolean
+  onClose: () => void
+  onStatusChange: (status: LiveVoiceStatus) => void
+}) {
+  const [messages, setMessages] = useState<LiveVoiceMessage[]>([])
+  const [input, setInput] = useState('')
+  const [sessionKey, setSessionKey] = useState<string | undefined>()
+  const [isListening, setIsListening] = useState(false)
+  const [isThinking, setIsThinking] = useState(false)
+  const startedRef = useRef(false)
+  const recognitionRef = useRef<InstanceType<SpeechRecognitionCtor> | null>(null)
+
+  const speak = (text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      onStatusChange('idle')
+      return
+    }
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = 0.96
+    utterance.pitch = 0.82
+    utterance.volume = 1
+    const voices = window.speechSynthesis.getVoices()
+    utterance.voice =
+      voices.find((voice) => /daniel|alex|google uk english male|english.*male/i.test(voice.name)) ??
+      voices.find((voice) => /^en[-_]/i.test(voice.lang)) ??
+      null
+    utterance.onstart = () => onStatusChange('speaking')
+    utterance.onend = () => onStatusChange('idle')
+    utterance.onerror = () => onStatusChange('idle')
+    window.speechSynthesis.speak(utterance)
+  }
+
+  const sendLiveMessage = async (text: string) => {
+    const clean = text.trim()
+    if (!clean || isThinking) return
+
+    setInput('')
+    setMessages((current) => [...current, { role: 'user', text: clean }])
+    setIsThinking(true)
+    onStatusChange('thinking')
+
+    try {
+      const response = await fetch('/api/hermes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: clean, sessionKey }),
+      })
+      const payload = (await response.json()) as { text?: string; error?: string; sessionKey?: string }
+
+      if (!response.ok || payload.error) {
+        throw new Error(payload.error || 'Live chat failed')
+      }
+
+      if (payload.sessionKey) setSessionKey(payload.sessionKey)
+      const reply = payload.text || 'I am online, but no text came back.'
+      setMessages((current) => [...current, { role: 'assistant', text: reply }])
+      speak(reply)
+    } catch (error) {
+      const failure = error instanceof Error ? error.message : 'Unexpected live chat error'
+      const text = `Live link error: ${failure}`
+      setMessages((current) => [...current, { role: 'system', text }])
+      speak('The live link is online, but the server chat endpoint returned an error.')
+    } finally {
+      setIsThinking(false)
+    }
+  }
+
+  const startListening = () => {
+    const Recognition = browserSpeechRecognition()
+    if (!Recognition) {
+      setMessages((current) => [...current, { role: 'system', text: 'Speech recognition is not available in this browser. Type your message instead.' }])
+      return
+    }
+
+    window.speechSynthesis?.cancel()
+    onStatusChange('listening')
+    recognitionRef.current?.stop()
+
+    const recognition = new Recognition()
+    recognitionRef.current = recognition
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.lang = 'en-AU'
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0]?.transcript ?? '')
+        .join(' ')
+        .trim()
+      if (transcript) void sendLiveMessage(transcript)
+    }
+    recognition.onend = () => {
+      setIsListening(false)
+      onStatusChange('idle')
+    }
+    recognition.onerror = () => {
+      setIsListening(false)
+      onStatusChange('idle')
+    }
+    setIsListening(true)
+    recognition.start()
+  }
+
+  useEffect(() => {
+    if (!open) return
+    if (startedRef.current) return
+    startedRef.current = true
+    const greeting = 'Brainiac online. Live voice link established. Tell me what you need.'
+    setMessages([{ role: 'assistant', text: greeting }])
+    setTimeout(() => speak(greeting), 120)
+  }, [open])
+
+  useEffect(() => {
+    if (open) return
+    recognitionRef.current?.stop()
+    if (typeof window !== 'undefined') window.speechSynthesis?.cancel()
+    setIsListening(false)
+    onStatusChange('idle')
+  }, [open])
+
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/55 backdrop-blur-md px-4">
+      <div className="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-cyan-300/20 bg-slate-950/90 shadow-[0_0_80px_-20px_rgba(0,220,255,0.45)]">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-300/[0.06]">
+              <Volume2Icon className="h-5 w-5 text-cyan-200" strokeWidth={1.5} />
+            </span>
+            <div>
+              <p className="font-mono text-sm tracking-[0.22em] text-white">BRAINIAC LIVE</p>
+              <p className="font-mono text-[10px] tracking-[0.18em] text-cyan-300/70">VOICE LINK ACTIVE</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-white/10 p-2 text-slate-400 transition hover:border-cyan-300/30 hover:text-white"
+            aria-label="Close live voice chat"
+          >
+            <XIcon className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="max-h-[46vh] min-h-[260px] space-y-3 overflow-y-auto px-5 py-5 font-mono text-sm">
+          {messages.map((message, index) => (
+            <div
+              key={`${message.role}-${index}`}
+              className={`rounded-2xl border px-4 py-3 leading-relaxed ${
+                message.role === 'user'
+                  ? 'ml-auto max-w-[82%] border-cyan-300/20 bg-cyan-300/10 text-slate-100'
+                  : message.role === 'system'
+                    ? 'border-amber-300/20 bg-amber-300/10 text-amber-100'
+                    : 'mr-auto max-w-[86%] border-white/10 bg-white/[0.035] text-slate-200'
+              }`}
+            >
+              {message.text}
+            </div>
+          ))}
+          {isThinking && (
+            <div className="mr-auto max-w-[86%] rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-slate-400">
+              Brainiac is thinking…
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-white/10 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={startListening}
+              disabled={isThinking || isListening}
+              className={`flex h-11 w-11 items-center justify-center rounded-2xl border transition ${
+                isListening
+                  ? 'border-cyan-300 bg-cyan-300/15 text-cyan-100 shadow-[0_0_24px_-6px_rgba(0,220,255,0.8)]'
+                  : 'border-white/10 bg-white/[0.03] text-slate-300 hover:border-cyan-300/35 hover:text-white'
+              }`}
+              aria-label="Speak to Brainiac"
+            >
+              <MicIcon className="h-5 w-5" strokeWidth={1.5} />
+            </button>
+            <input
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') void sendLiveMessage(input)
+              }}
+              placeholder={isListening ? 'Listening…' : 'Talk to Brainiac…'}
+              className="h-11 min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/30 px-4 font-mono text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-cyan-300/40"
+            />
+            <button
+              type="button"
+              onClick={() => void sendLiveMessage(input)}
+              disabled={!input.trim() || isThinking}
+              className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-300 text-black transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-600"
+              aria-label="Send message"
+            >
+              <SendIcon className="h-4 w-4" strokeWidth={1.8} />
+            </button>
+          </div>
+          <p className="mt-3 text-center font-mono text-[10px] tracking-[0.12em] text-slate-600">
+            Click the mic to speak. Replies are spoken aloud when your browser allows audio.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ── 3D cube launch transition ──────────────────────────────────── */
 function LaunchTransition({ app }: { app: AppDef }) {
   const Icon = app.icon
@@ -424,6 +713,8 @@ export function Landing() {
   const [bootLine,  setBootLine]  = useState(0)
   const [launching, setLaunching] = useState<AppDef | null>(null)
   const [wireReady, setWireReady] = useState(false)
+  const [liveVoiceOpen, setLiveVoiceOpen] = useState(false)
+  const [liveVoiceStatus, setLiveVoiceStatus] = useState<LiveVoiceStatus>('idle')
 
   // refs for SVG wire overlay
   const panelRefs = useRef<Array<HTMLButtonElement | null>>(Array(6).fill(null))
@@ -477,10 +768,9 @@ export function Landing() {
     launchHref(app.href, app)
   }
 
-  const launchPhantomFromOrb = () => {
-    const phantom = apps.find((app) => app.id === 'hermes')
-    if (!phantom) return
-    launchHref('/hermes?start=orb', phantom)
+  const launchLiveVoiceFromOrb = () => {
+    if (launching) return
+    setLiveVoiceOpen(true)
   }
 
   const time = clock
@@ -513,6 +803,11 @@ export function Landing() {
   return (
     <div className="relative flex flex-col h-screen max-h-screen overflow-hidden select-none">
       {launching && <LaunchTransition app={launching} />}
+      <LiveVoiceOverlay
+        open={liveVoiceOpen}
+        onClose={() => setLiveVoiceOpen(false)}
+        onStatusChange={setLiveVoiceStatus}
+      />
 
       {/* SVG wire overlay — full viewport, reads real DOM positions */}
       <WireOverlay panelRefs={panelRefs} coreRef={coreRef} ready={wireReady} />
@@ -583,10 +878,10 @@ export function Landing() {
 
         {/* reactor core */}
         <div className="flex flex-col items-center z-20">
-          <ReactorCore divRef={coreRef} onLaunchChat={launchPhantomFromOrb} />
+          <ReactorCore divRef={coreRef} onLaunchChat={launchLiveVoiceFromOrb} liveStatus={liveVoiceStatus} />
           <div className="mt-1 flex items-center gap-2.5 text-[10px] font-mono tracking-[0.3em] text-slate-500">
             <span className="w-1 h-1 rounded-full bg-cyan-300/90 shadow-[0_0_6px_rgba(0,220,255,0.9)]" />
-            HELIX&nbsp;ASSISTANT — STANDING&nbsp;BY
+            BRAINIAC&nbsp;LIVE — TAP&nbsp;TO&nbsp;TALK
           </div>
         </div>
       </main>
