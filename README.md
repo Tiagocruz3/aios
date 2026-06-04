@@ -33,6 +33,19 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### Configure OpenClaw Gateway
+
+Create `.env.local` (local) or set Vercel env vars with:
+
+```env
+OPENCLAW_GATEWAY_URL=ws://127.0.0.1:18789
+OPENCLAW_GATEWAY_TOKEN=<gateway-token>
+OPENCLAW_CHAT_MODEL=openai/gpt-5-codex
+```
+
+When tunneling, forward the gateway port: `ssh -N -L 18789:127.0.0.1:18789 user@host`.
+
+
 ## Supported Models
 
 - Claude Opus 4.6

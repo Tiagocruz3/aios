@@ -1,9 +1,13 @@
 import { randomUUID } from 'node:crypto'
 
-const DEFAULT_GATEWAY_URL =
-  process.env.OPENCLAW_GATEWAY_HTTP_URL ||
-  process.env.OPENCLAW_GATEWAY_URL ||
-  'https://chat.capsulerelay.com'
+const configuredGatewayUrl =
+  process.env.OPENCLAW_GATEWAY_HTTP_URL || process.env.OPENCLAW_GATEWAY_URL
+
+if (!configuredGatewayUrl?.trim()) {
+  throw new Error('OPENCLAW_GATEWAY_URL is not configured')
+}
+
+const DEFAULT_GATEWAY_URL = configuredGatewayUrl.trim()
 const DEFAULT_MODEL = process.env.OPENCLAW_CHAT_MODEL || 'openai/gpt-5.5'
 const RESPONSE_TIMEOUT_MS = 60000
 
@@ -32,7 +36,7 @@ function sanitizeSessionKey(sessionKey?: string) {
 }
 
 function gatewayHttpBaseUrl() {
-  const raw = DEFAULT_GATEWAY_URL.trim().replace(/\/$/, '')
+  const raw = DEFAULT_GATEWAY_URL.replace(/\/$/, '')
 
   if (raw.startsWith('wss://')) return `https://${raw.slice('wss://'.length)}`
   if (raw.startsWith('ws://')) return `http://${raw.slice('ws://'.length)}`
