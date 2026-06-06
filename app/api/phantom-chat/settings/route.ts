@@ -4,9 +4,24 @@ import {
   saveSettings,
   type SaveSettingsInput,
 } from '@/lib/phantom-chat/settings'
+import {
+  DEFAULT_OPENCLAW_BASE_URL,
+  DEFAULT_OPENCLAW_MODEL,
+  DEFAULT_PROVIDER,
+  type PublicPhantomChatSettings,
+} from '@/lib/phantom-chat/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+const FALLBACK_SETTINGS: PublicPhantomChatSettings = {
+  provider: DEFAULT_PROVIDER,
+  openclawBaseUrl: DEFAULT_OPENCLAW_BASE_URL,
+  openclawModel: DEFAULT_OPENCLAW_MODEL,
+  stableUserIdKey: 'webui:<appUserId>',
+  hasOpenclawToken: false,
+  openclawTokenFromSettings: false,
+}
 
 /** Return client-safe settings. Never includes the gateway token value. */
 export async function GET() {
@@ -14,10 +29,8 @@ export async function GET() {
     const settings = await loadPublicSettings()
     return NextResponse.json(settings)
   } catch {
-    return NextResponse.json(
-      { error: 'Failed to load Phantom Chat settings.' },
-      { status: 500 }
-    )
+    // Never break the Settings UI — fall back to sane defaults.
+    return NextResponse.json(FALLBACK_SETTINGS)
   }
 }
 
