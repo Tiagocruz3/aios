@@ -35,15 +35,34 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Configure OpenClaw Gateway
 
+"Phantom Chat" (the `/hermes` page) can route text chat through the OpenClaw
+(self-hosted) gateway or the built-in AI Gateway. Pick the backend with the
+provider selector in the Phantom Chat header, and edit OpenClaw settings via the
+gear icon (Settings → Phantom Chat Settings → OpenClaw Settings).
+
 Create `.env.local` (local) or set Vercel env vars with:
 
 ```env
-OPENCLAW_GATEWAY_URL=ws://127.0.0.1:18789
-OPENCLAW_GATEWAY_TOKEN=<gateway-token>
-OPENCLAW_CHAT_MODEL=openai/gpt-5-codex
+# Required
+OPENCLAW_GATEWAY_BASE_URL=https://darkgrey-quail-161852.hostingersite.com
+OPENCLAW_GATEWAY_TOKEN=<gateway-token>   # mark as Secret in Vercel
+
+# Recommended
+OPENCLAW_MODEL=openclaw/default
+
+# Recommended: encrypts settings (e.g. a token entered in the UI) at rest
+PHANTOM_SETTINGS_SECRET=<long-random-string>
 ```
 
-When tunneling, forward the gateway port: `ssh -N -L 18789:127.0.0.1:18789 user@host`.
+These act as defaults. Per-user overrides entered in Settings take effect
+immediately without a redeploy. The gateway token is stored in an encrypted,
+httpOnly cookie and is never sent to the browser; all OpenClaw requests are
+proxied through `app/api/hermes/route.ts`.
+
+Legacy aliases `OPENCLAW_GATEWAY_URL` and `OPENCLAW_CHAT_MODEL` are still
+honored. When tunneling a local gateway, forward the port:
+`ssh -N -L 18789:127.0.0.1:18789 user@host` and set
+`OPENCLAW_GATEWAY_BASE_URL=ws://127.0.0.1:18789` (ws/wss are auto-converted).
 
 
 ## Supported Models

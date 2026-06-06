@@ -10,6 +10,23 @@ import {
 import { Streamdown } from 'streamdown'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  PHANTOM_PROVIDERS,
+  PROVIDER_LABELS,
+  type ProviderId,
+} from '@/lib/phantom-chat/types'
+import { PhantomSettings } from './phantom-settings'
+import { usePhantomSettings } from './use-phantom-settings'
+
+const USER_ID_KEY = 'phantom-chat-user-id'
+const CONVERSATION_KEY = 'phantom-chat-conversation-id'
 
 const SUGGESTIONS = [
   'Give me a clean summary of what is happening across my OpenClaw setup.',
@@ -27,10 +44,14 @@ type ChatMessage = {
 }
 
 export function HermesChat({ className }: { className?: string }) {
+  const { settings, save } = usePhantomSettings()
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [status, setStatus] = useState<'idle' | 'submitted'>('idle')
   const [sessionKey, setSessionKey] = useState<string | null>(null)
+  const [provider, setProvider] = useState<ProviderId>('openclaw')
+  const [userId, setUserId] = useState<string>('')
+  const [conversationId, setConversationId] = useState<string>('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -38,10 +59,39 @@ export function HermesChat({ className }: { className?: string }) {
   const isLoading = status === 'submitted'
   const isEmpty = messages.length === 0
 
+  // Keep the visible provider in sync with the persisted setting.
+  useEffect(() => {
+    if (settings?.provider) setProvider(settings.provider)
+  }, [settings?.provider])
+
+  // Establish stable per-user and per-conversation ids (persisted locally).
   useEffect(() => {
     const stored = window.localStorage.getItem(SESSION_STORAGE_KEY)
     if (stored) setSessionKey(stored)
+
+    let uid = window.localStorage.getItem(USER_ID_KEY)
+    if (!uid) {
+      uid = crypto.randomUUID()
+      window.localStorage.setItem(USER_ID_KEY, uid)
+    }
+    setUserId(uid)
+
+    let cid = window.localStorage.getItem(CONVERSATION_KEY)
+    if (!cid) {
+      cid = crypto.randomUUID()
+      window.localStorage.setItem(CONVERSATION_KEY, cid)
+    }
+    setConversationId(cid)
   }, [])
+
+  // Persist the provider choice per user, and switch behavior immediately.
+  const changeProvider = useCallback(
+    (next: ProviderId) => {
+      setProvider(next)
+      void save({ provider: next }).catch(() => {})
+    },
+    [save]
+  )
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -68,6 +118,10 @@ export function HermesChat({ className }: { className?: string }) {
     setMessages([])
     setSessionKey(null)
     window.localStorage.removeItem(SESSION_STORAGE_KEY)
+    // Start a brand-new conversation so server-side context resets too.
+    const cid = crypto.randomUUID()
+    window.localStorage.setItem(CONVERSATION_KEY, cid)
+    setConversationId(cid)
   }, [])
 
   const submit = useCallback(
@@ -77,6 +131,9 @@ export function HermesChat({ className }: { className?: string }) {
 
       const controller = new AbortController()
       abortRef.current = controller
+
+      // Build the transcript (history + new turn) for stateless providers.
+      const history = messages.map((m) => ({ role: m.role, content: m.text }))
 
       setMessages((current) => [
         ...current,
@@ -89,7 +146,14 @@ export function HermesChat({ className }: { className?: string }) {
         const response = await fetch('/api/hermes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: value, sessionKey }),
+          body: JSON.stringify({
+            message: value,
+            messages: [...history, { role: 'user', content: value }],
+            provider,
+            conversationId,
+            userId,
+            sessionKey,
+          }),
           signal: controller.signal,
         })
 
@@ -137,7 +201,7 @@ export function HermesChat({ className }: { className?: string }) {
         setStatus('idle')
       }
     },
-    [isLoading, resetComposer, sessionKey]
+    [isLoading, resetComposer, sessionKey, provider, conversationId, userId, messages]
   )
 
   return (
@@ -148,18 +212,40 @@ export function HermesChat({ className }: { className?: string }) {
           Phantom
         </span>
         <span className="text-[10px] font-mono text-slate-600">
-          openclaw gateway
+          {PROVIDER_LABELS[provider]}
         </span>
-        {!isEmpty && (
-          <button
-            type="button"
-            onClick={clearConversation}
-            className="ml-auto flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11px] font-mono text-slate-400 border border-white/10 bg-white/[0.03] hover:text-cyan-200 hover:border-cyan-400/30 transition-all"
-          >
-            <PlusIcon className="w-3.5 h-3.5" />
-            New chat
-          </button>
-        )}
+
+        <div className="ml-auto flex items-center gap-2">
+          <Select value={provider} onValueChange={(v) => changeProvider(v as ProviderId)}>
+            <SelectTrigger
+              size="sm"
+              className="h-7 w-[180px] bg-white/[0.03] border-white/10 text-[11px] font-mono text-slate-300"
+              title="Chat Method / Provider"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PHANTOM_PROVIDERS.map((p) => (
+                <SelectItem key={p} value={p} className="text-[11px] font-mono">
+                  {PROVIDER_LABELS[p]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <PhantomSettings onProviderChange={changeProvider} />
+
+          {!isEmpty && (
+            <button
+              type="button"
+              onClick={clearConversation}
+              className="flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11px] font-mono text-slate-400 border border-white/10 bg-white/[0.03] hover:text-cyan-200 hover:border-cyan-400/30 transition-all"
+            >
+              <PlusIcon className="w-3.5 h-3.5" />
+              New chat
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto">
