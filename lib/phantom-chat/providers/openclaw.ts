@@ -164,6 +164,40 @@ function extractFromObject(obj: unknown): Extracted {
   return { text: '', id }
 }
 
+/** Keys that commonly hold assistant text across gateway variants. */
+const TEXT_KEYS = new Set([
+  'output_text',
+  'content',
+  'text',
+  'message',
+  'answer',
+  'reply',
+  'completion',
+  'response_text',
+])
+
+/** Last-resort: collect strings stored under likely "answer" keys, any depth. */
+function deepFindText(value: unknown, depth = 0): string[] {
+  const out: string[] = []
+  if (depth > 6 || value == null) return out
+  if (Array.isArray(value)) {
+    for (const v of value) out.push(...deepFindText(v, depth + 1))
+    return out
+  }
+  if (typeof value === 'object') {
+    const o = value as Record<string, unknown>
+    for (const k of Object.keys(o)) {
+      const v = o[k]
+      if (typeof v === 'string' && TEXT_KEYS.has(k) && v.trim()) {
+        out.push(v.trim())
+      } else if (v && typeof v === 'object') {
+        out.push(...deepFindText(v, depth + 1))
+      }
+    }
+  }
+  return out
+}
+
 /** Accumulate text/id from one streamed or full event object. */
 function accumulateEvent(evt: unknown, acc: { text: string; id?: string }) {
   if (!evt || typeof evt !== 'object') return
@@ -274,6 +308,11 @@ function parseBody(raw: string, contentType: string): Extracted | null {
     const acc = { text: '', id: undefined as string | undefined }
     for (const v of values) accumulateEvent(v, acc)
     if (acc.text || acc.id) return { text: acc.text.trim(), id: acc.id }
+    // Last resort: deep-search for an answer string under common keys.
+    const found = values.flatMap((v) => deepFindText(v))
+    if (found.length) {
+      return { text: found.sort((a, b) => b.length - a.length)[0] }
+    }
   }
 
   // 4. Plain-text answer with no JSON at all.
