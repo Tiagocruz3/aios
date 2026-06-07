@@ -328,7 +328,18 @@ interface CallOutcome {
   extracted: Extracted | null
   /** Redacted error message when the call did not yield usable output. */
   errorMessage?: string
+  /** Endpoint isn't a working API (404 or an HTML page served in its place). */
+  unavailable?: boolean
+  /** The URL returned an HTML document instead of an API response. */
+  isHtml?: boolean
 }
+
+/** The base URL is serving a web page rather than the OpenClaw API. */
+const HTML_RESPONSE_MESSAGE =
+  'OpenClaw Gateway base URL returned a web page (HTML), not an API response. ' +
+  'The configured URL appears to serve the OpenClaw web UI. Set the Gateway ' +
+  'Base URL to your gateway’s API endpoint (it must return JSON for ' +
+  '/v1/responses), then save and retry.'
 
 export function createOpenClawProvider(settings: OpenClawSettings): ChatProvider {
   return {
@@ -424,17 +435,25 @@ export function createOpenClawProvider(settings: OpenClawSettings): ChatProvider
               return undefined
             }
           })()
+          const isHtml =
+            /text\/html/i.test(contentType) ||
+            /^\s*<(?:!doctype|html)/i.test(rawBody)
           const snippet = rawBody.trim().slice(0, 180)
           return {
             status: res.status,
             extracted: null,
-            errorMessage: redact(
-              fromJson ||
-                (snippet
-                  ? `${path} returned an unexpected response (${res.status}): ${snippet}`
-                  : `${path} request failed with status ${res.status}`),
-              token
-            ),
+            isHtml,
+            // 404 or an HTML page in place of the API both mean "not an API here".
+            unavailable: res.status === 404 || isHtml,
+            errorMessage: isHtml
+              ? HTML_RESPONSE_MESSAGE
+              : redact(
+                  fromJson ||
+                    (snippet
+                      ? `${path} returned an unexpected response (${res.status}): ${snippet}`
+                      : `${path} request failed with status ${res.status}`),
+                  token
+                ),
           }
         } catch (error) {
           if (error instanceof Error && error.name === 'AbortError') {
@@ -482,18 +501,24 @@ export function createOpenClawProvider(settings: OpenClawSettings): ChatProvider
               : ['responses', 'chat']
 
       let last: CallOutcome | undefined
-      let all404 = true
+      let allUnavailable = true
+      let anyHtml = false
       for (const endpoint of order) {
         const outcome = await call(endpoint)
         last = outcome
         if (outcome.extracted && (outcome.extracted.text || outcome.extracted.id)) {
           return succeed(endpoint, outcome.extracted)
         }
-        if (outcome.status !== 404) all404 = false
+        if (outcome.isHtml) anyHtml = true
+        if (!outcome.unavailable) allUnavailable = false
       }
 
-      // Both transports unavailable → the spec's exact message.
-      if (all404) throw new OpenClawEndpointDisabledError()
+      // Every transport is unavailable: distinguish "wrong URL / web UI" (HTML)
+      // from "API disabled" (404) so the user gets an actionable message.
+      if (allUnavailable) {
+        if (anyHtml) throw new Error(HTML_RESPONSE_MESSAGE)
+        throw new OpenClawEndpointDisabledError()
+      }
       throw new Error(last?.errorMessage || 'OpenClaw request failed.')
     },
   }
