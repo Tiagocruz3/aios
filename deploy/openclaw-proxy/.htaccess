@@ -1,0 +1,25 @@
+# OpenClaw API routing for Hostinger shared hosting (Apache).
+#
+# Goal: serve the website at / as today, but route /v1/* to the gateway.
+#
+# IMPORTANT: these /v1 rules MUST come BEFORE any existing SPA catch-all
+# (e.g. "RewriteRule . /index.html [L]"). Merge them into the TOP of your
+# existing root .htaccess.
+
+RewriteEngine On
+
+# --- Option A: PHP proxy (works without mod_proxy; recommended on shared) ---
+# Route every /v1/* request to the PHP reverse proxy in this folder.
+RewriteRule ^v1/ v1-proxy.php [L,QSA]
+
+# --- Option B: native mod_proxy (only if your plan has it enabled) ---
+# Comment out Option A above and uncomment these instead. Replace the upstream
+# with the gateway address reachable from this server.
+#   RewriteRule ^v1/(.*)$ http://127.0.0.1:18789/v1/$1 [P,L,QSA]
+#   ProxyPassReverse /v1/ http://127.0.0.1:18789/v1/
+
+# ---------------------------------------------------------------------------
+# Your existing website/SPA rules go BELOW this line, e.g.:
+#   RewriteCond %{REQUEST_FILENAME} !-f
+#   RewriteCond %{REQUEST_FILENAME} !-d
+#   RewriteRule . /index.html [L]
