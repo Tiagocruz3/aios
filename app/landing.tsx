@@ -8,6 +8,7 @@ import {
   WifiIcon, CpuIcon, CircleIcon, LayersIcon, AtomIcon, CalendarIcon,
   MicIcon,
 } from 'lucide-react'
+import { PhantomSettings } from '@/components/hermes-chat/phantom-settings'
 
 /* ── clock ─────────────────────────────────────────────────────── */
 function useClock() {
@@ -876,6 +877,7 @@ export function Landing() {
           <span className="hidden sm:inline text-slate-500 tracking-wider">Command Centre</span>
         </div>
         <div className="flex items-center gap-4 sm:gap-5 text-slate-500">
+          <PhantomSettings />
           <span className="hidden sm:flex items-center gap-1.5">
             <CpuIcon className="w-3.5 h-3.5" strokeWidth={1.5} />
             <span className="tabular-nums">{cpu}%</span>

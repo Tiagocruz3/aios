@@ -164,7 +164,76 @@ function extractFromObject(obj: unknown): Extracted {
   return { text: '', id }
 }
 
-/** Parse a possibly-SSE, possibly-JSON body into assistant text + id. */
+/** Accumulate text/id from one streamed or full event object. */
+function accumulateEvent(evt: unknown, acc: { text: string; id?: string }) {
+  if (!evt || typeof evt !== 'object') return
+  const e = evt as Record<string, unknown>
+  // /v1/responses streaming delta.
+  if (typeof e.delta === 'string') acc.text += e.delta
+  // /v1/chat/completions streaming delta.
+  const choiceDelta = (
+    e.choices as Array<{ delta?: { content?: unknown } }> | undefined
+  )?.[0]?.delta?.content
+  if (typeof choiceDelta === 'string') acc.text += choiceDelta
+  // Full / final object: capture id and (if no streamed text yet) full text.
+  const extracted = extractFromObject(e)
+  if (extracted.id) acc.id = extracted.id
+  if (!acc.text && extracted.text) acc.text = extracted.text
+}
+
+/**
+ * Scan a string for top-level JSON objects/arrays, skipping any non-JSON
+ * prefixes, separators, or banners (e.g. the gateway's `OpenClaw * {…}` and
+ * NDJSON streams). Returns every value it could parse, in order.
+ */
+function scanJsonValues(s: string): unknown[] {
+  const values: unknown[] = []
+  let i = 0
+  const n = s.length
+  while (i < n) {
+    const ch = s[i]
+    if (ch !== '{' && ch !== '[') {
+      i++
+      continue
+    }
+    const open = ch
+    const close = open === '{' ? '}' : ']'
+    let depth = 0
+    let inString = false
+    let escaped = false
+    let j = i
+    for (; j < n; j++) {
+      const c = s[j]
+      if (inString) {
+        if (escaped) escaped = false
+        else if (c === '\\') escaped = true
+        else if (c === '"') inString = false
+        continue
+      }
+      if (c === '"') inString = true
+      else if (c === open) depth++
+      else if (c === close) {
+        depth--
+        if (depth === 0) break
+      }
+    }
+    if (depth === 0 && j < n) {
+      const candidate = s.slice(i, j + 1)
+      try {
+        values.push(JSON.parse(candidate))
+      } catch {
+        // Not valid JSON after all — skip past the opening brace and retry.
+      }
+      i = j + 1
+    } else {
+      // Unbalanced — no complete JSON value remains.
+      break
+    }
+  }
+  return values
+}
+
+/** Parse a possibly-SSE, possibly-JSON, possibly-prefixed body into text + id. */
 function parseBody(raw: string, contentType: string): Extracted | null {
   const trimmed = raw.trim()
   if (!trimmed) return null
@@ -173,44 +242,46 @@ function parseBody(raw: string, contentType: string): Extracted | null {
     contentType.includes('text/event-stream') ||
     /^(data|event):/m.test(trimmed)
 
+  // 1. Clean JSON.
   if (!looksSSE) {
     try {
       return extractFromObject(JSON.parse(trimmed))
     } catch {
-      return null
+      // fall through
     }
   }
 
-  // Reconstruct from SSE: accumulate text deltas and capture any final object.
-  let text = ''
-  let id: string | undefined
-  for (const line of trimmed.split(/\r?\n/)) {
-    const m = line.match(/^data:\s?(.*)$/)
-    if (!m) continue
-    const payload = m[1].trim()
-    if (!payload || payload === '[DONE]') continue
-    let evt: unknown
-    try {
-      evt = JSON.parse(payload)
-    } catch {
-      continue
+  // 2. SSE: accumulate "data:" payloads.
+  if (looksSSE) {
+    const acc = { text: '', id: undefined as string | undefined }
+    for (const line of trimmed.split(/\r?\n/)) {
+      const m = line.match(/^data:\s?(.*)$/)
+      if (!m) continue
+      const payload = m[1].trim()
+      if (!payload || payload === '[DONE]') continue
+      try {
+        accumulateEvent(JSON.parse(payload), acc)
+      } catch {
+        // ignore malformed event
+      }
     }
-    const e = evt as Record<string, unknown>
-    // /v1/responses streaming deltas.
-    if (typeof e.delta === 'string') text += e.delta
-    // /v1/chat/completions streaming deltas.
-    const choiceDelta = (
-      e.choices as Array<{ delta?: { content?: unknown } }> | undefined
-    )?.[0]?.delta?.content
-    if (typeof choiceDelta === 'string') text += choiceDelta
-    // Capture id / final object whenever present.
-    const extracted = extractFromObject(e)
-    if (extracted.id) id = extracted.id
-    if (!text && extracted.text) text = extracted.text
+    if (acc.text || acc.id) return { text: acc.text.trim(), id: acc.id }
   }
 
-  if (!text && !id) return null
-  return { text: text.trim(), id }
+  // 3. Embedded / prefixed / NDJSON: scan for JSON values anywhere in the body.
+  const values = scanJsonValues(trimmed)
+  if (values.length) {
+    const acc = { text: '', id: undefined as string | undefined }
+    for (const v of values) accumulateEvent(v, acc)
+    if (acc.text || acc.id) return { text: acc.text.trim(), id: acc.id }
+  }
+
+  // 4. Plain-text answer with no JSON at all.
+  if (contentType.includes('text/plain') || !/[{[]/.test(trimmed)) {
+    return { text: trimmed }
+  }
+
+  return null
 }
 
 interface CallOutcome {

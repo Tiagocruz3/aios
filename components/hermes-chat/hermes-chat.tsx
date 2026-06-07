@@ -206,20 +206,17 @@ export function HermesChat({ className }: { className?: string }) {
 
   return (
     <div className={cn('flex flex-col h-full w-full min-h-0 holo-surface', className)}>
-      <div className="flex items-center gap-2 px-5 h-11 flex-shrink-0 border-b border-white/8">
-        <RadioIcon className="w-4 h-4 text-cyan-400" strokeWidth={1.5} />
-        <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-200">
+      <div className="flex items-center gap-2 px-3 sm:px-5 h-11 flex-shrink-0 border-b border-white/8">
+        <RadioIcon className="w-4 h-4 text-cyan-400 flex-shrink-0" strokeWidth={1.5} />
+        <span className="hidden sm:inline text-xs font-mono font-bold uppercase tracking-wider text-cyan-200">
           Phantom
         </span>
-        <span className="text-[10px] font-mono text-slate-600">
-          {PROVIDER_LABELS[provider]}
-        </span>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
           <Select value={provider} onValueChange={(v) => changeProvider(v as ProviderId)}>
             <SelectTrigger
               size="sm"
-              className="h-7 w-[180px] bg-white/[0.03] border-white/10 text-[11px] font-mono text-slate-300"
+              className="h-7 w-[140px] sm:w-[190px] min-w-0 bg-white/[0.03] border-white/10 text-[11px] font-mono text-slate-300"
               title="Chat Method / Provider"
             >
               <SelectValue />
@@ -239,10 +236,11 @@ export function HermesChat({ className }: { className?: string }) {
             <button
               type="button"
               onClick={clearConversation}
-              className="flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11px] font-mono text-slate-400 border border-white/10 bg-white/[0.03] hover:text-cyan-200 hover:border-cyan-400/30 transition-all"
+              title="New chat"
+              className="flex items-center gap-1.5 h-7 px-2 sm:px-2.5 rounded-md text-[11px] font-mono text-slate-400 border border-white/10 bg-white/[0.03] hover:text-cyan-200 hover:border-cyan-400/30 transition-all flex-shrink-0"
             >
               <PlusIcon className="w-3.5 h-3.5" />
-              New chat
+              <span className="hidden sm:inline">New chat</span>
             </button>
           )}
         </div>
