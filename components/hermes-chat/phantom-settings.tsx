@@ -21,6 +21,8 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { SettingsIcon, Loader2Icon, CheckIcon, ShieldCheckIcon } from 'lucide-react'
 import {
+  DEFAULT_OPENCLAW_BASE_URL,
+  DEFAULT_OPENCLAW_MODEL,
   PHANTOM_PROVIDERS,
   PROVIDER_LABELS,
   type ProviderId,
@@ -73,6 +75,16 @@ export function PhantomSettings({
     }
     return 'No token configured yet.'
   }, [settings])
+
+  // Load the built-in default config into the form (does not touch the token).
+  function fillDefaults() {
+    setProvider('openclaw')
+    setBaseUrl(DEFAULT_OPENCLAW_BASE_URL)
+    setModel(DEFAULT_OPENCLAW_MODEL)
+    setUserIdKey('webui:<appUserId>')
+    setSaved(false)
+    setError(null)
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -209,13 +221,25 @@ export function PhantomSettings({
             <p className="text-xs font-mono text-red-400 break-words">{error}</p>
           )}
 
-          <div className="flex items-center justify-end gap-2">
-            {saved && !saving && (
-              <span className="flex items-center gap-1 text-xs font-mono text-emerald-400">
-                <CheckIcon className="w-3.5 h-3.5" /> Saved
-              </span>
-            )}
-            <Button onClick={handleSave} disabled={saving || isLoading} size="sm">
+          <div className="flex items-center justify-between gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={fillDefaults}
+              disabled={saving}
+              className="text-xs font-mono text-slate-400"
+              title="Load the built-in Hermes gateway config"
+            >
+              Reset to defaults
+            </Button>
+            <div className="flex items-center gap-2">
+              {saved && !saving && (
+                <span className="flex items-center gap-1 text-xs font-mono text-emerald-400">
+                  <CheckIcon className="w-3.5 h-3.5" /> Saved
+                </span>
+              )}
+              <Button onClick={handleSave} disabled={saving || isLoading} size="sm">
               {saving ? (
                 <>
                   <Loader2Icon className="w-3.5 h-3.5 animate-spin" /> Saving
@@ -223,7 +247,8 @@ export function PhantomSettings({
               ) : (
                 'Save settings'
               )}
-            </Button>
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
