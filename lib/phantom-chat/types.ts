@@ -17,9 +17,8 @@ export const PROVIDER_LABELS: Record<ProviderId, string> = {
   gateway: 'AI Gateway (built-in)',
 }
 
-export const DEFAULT_OPENCLAW_BASE_URL =
-  'https://darkgrey-quail-161852.hostingersite.com'
-export const DEFAULT_OPENCLAW_MODEL = 'openclaw/default'
+export const DEFAULT_OPENCLAW_BASE_URL = 'http://192.168.68.111:8642'
+export const DEFAULT_OPENCLAW_MODEL = 'hermes'
 
 /** A single turn in the conversation, normalized across providers. */
 export interface ChatMessage {

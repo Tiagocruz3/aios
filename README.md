@@ -43,12 +43,12 @@ gear icon (Settings → Phantom Chat Settings → OpenClaw Settings).
 Create `.env.local` (local) or set Vercel env vars with:
 
 ```env
-# Required
-OPENCLAW_GATEWAY_BASE_URL=https://darkgrey-quail-161852.hostingersite.com
+# Required — use a PUBLIC url for the Vercel deployment (see note below)
+OPENCLAW_GATEWAY_BASE_URL=http://192.168.68.111:8642
 OPENCLAW_GATEWAY_TOKEN=<gateway-token>   # mark as Secret in Vercel
 
 # Recommended
-OPENCLAW_MODEL=openclaw/default
+OPENCLAW_MODEL=hermes
 
 # Recommended: encrypts settings (e.g. a token entered in the UI) at rest
 PHANTOM_SETTINGS_SECRET=<long-random-string>
@@ -56,13 +56,17 @@ PHANTOM_SETTINGS_SECRET=<long-random-string>
 
 These act as defaults. Per-user overrides entered in Settings take effect
 immediately without a redeploy. The gateway token is stored in an encrypted,
-httpOnly cookie and is never sent to the browser; all OpenClaw requests are
+httpOnly cookie and is never sent to the browser; all gateway requests are
 proxied through `app/api/hermes/route.ts`.
 
+> **LAN vs cloud:** `192.168.68.111:8642` is a private LAN address — it works
+> when the app runs on the same network (local `pnpm dev`), but the **Vercel
+> deployment cannot reach it**. To use the deployed app, expose the gateway with
+> a public tunnel (see `deploy/openclaw-proxy/TUNNEL.md`) and set
+> `OPENCLAW_GATEWAY_BASE_URL` to the tunnel's HTTPS URL.
+
 Legacy aliases `OPENCLAW_GATEWAY_URL` and `OPENCLAW_CHAT_MODEL` are still
-honored. When tunneling a local gateway, forward the port:
-`ssh -N -L 18789:127.0.0.1:18789 user@host` and set
-`OPENCLAW_GATEWAY_BASE_URL=ws://127.0.0.1:18789` (ws/wss are auto-converted).
+honored (ws/wss URLs are auto-converted to http/https).
 
 
 ## Supported Models

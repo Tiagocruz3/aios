@@ -183,7 +183,7 @@ export function PhantomSettings({
                 id="oc-model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder="openclaw/default"
+                placeholder="hermes"
                 autoComplete="off"
                 spellCheck={false}
               />
