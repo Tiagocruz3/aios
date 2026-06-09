@@ -74,20 +74,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'A message is required.' }, { status: 400 })
   }
 
-  const settings = await loadServerSettings()
-  const requestedProvider = PHANTOM_PROVIDERS.includes(body.provider as ProviderId)
-    ? (body.provider as ProviderId)
-    : settings.provider
-
   const conversationId = body.conversationId?.trim() || undefined
   const userId = body.userId?.trim() || body.sessionKey?.trim() || 'webui-user'
 
-  // Replay prior provider conversation state (OpenClaw previous_response_id).
-  const previousResponseId = conversationId
-    ? await cookieConversationStore.get(conversationId)
-    : undefined
-
   try {
+    const settings = await loadServerSettings()
+    const requestedProvider = PHANTOM_PROVIDERS.includes(
+      body.provider as ProviderId
+    )
+      ? (body.provider as ProviderId)
+      : settings.provider
+
+    // Replay prior provider conversation state (previous_response_id).
+    const previousResponseId = conversationId
+      ? await cookieConversationStore.get(conversationId)
+      : undefined
+
     const { assistantText, providerMeta } = await sendMessage(
       requestedProvider,
       { openclaw: settings.openclaw },

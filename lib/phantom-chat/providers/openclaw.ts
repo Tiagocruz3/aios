@@ -27,7 +27,25 @@ import type {
   SendMessageResult,
 } from '../types'
 
-const RESPONSE_TIMEOUT_MS = 60_000
+const RESPONSE_TIMEOUT_MS = 25_000
+
+/** True for localhost / RFC1918 / link-local hosts that a cloud app can't reach. */
+function isPrivateOrLocalHost(urlStr: string): boolean {
+  try {
+    const h = new URL(urlStr).hostname
+    return (
+      h === 'localhost' ||
+      h === '::1' ||
+      /^127\./.test(h) ||
+      /^10\./.test(h) ||
+      /^192\.168\./.test(h) ||
+      /^169\.254\./.test(h) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(h)
+    )
+  } catch {
+    return false
+  }
+}
 
 type ApiMode = 'auto' | 'responses' | 'chat'
 type Endpoint = 'responses' | 'chat'
@@ -457,18 +475,21 @@ export function createOpenClawProvider(settings: OpenClawSettings): ChatProvider
                 ),
           }
         } catch (error) {
+          const hint = isPrivateOrLocalHost(httpBase)
+            ? ` The gateway URL (${httpBase}) is a private/LAN address — a deployed (cloud) app cannot reach it. Use a public URL or a tunnel (see deploy/openclaw-proxy/TUNNEL.md).`
+            : ` Check that the gateway is running and reachable at ${httpBase}.`
           if (error instanceof Error && error.name === 'AbortError') {
             return {
               status: 0,
               extracted: null,
-              errorMessage: 'OpenClaw response timed out.',
+              errorMessage: `Timed out reaching the OpenClaw gateway.${hint}`,
             }
           }
           return {
             status: 0,
             extracted: null,
             errorMessage: redact(
-              error instanceof Error ? error.message : 'OpenClaw request failed.',
+              `Could not reach the OpenClaw gateway.${hint}`,
               token
             ),
           }
