@@ -45,7 +45,8 @@ export class OpenClawEndpointDisabledError extends Error {
 
 function apiMode(): ApiMode {
   const raw = process.env.OPENCLAW_API_MODE?.trim().toLowerCase()
-  return raw === 'responses' || raw === 'chat' ? raw : 'auto'
+  // Default to chat/completions — this gateway's documented endpoint.
+  return raw === 'responses' || raw === 'auto' ? raw : 'chat'
 }
 
 /** Convert ws/wss gateway URLs to http/https and strip a trailing slash. */
